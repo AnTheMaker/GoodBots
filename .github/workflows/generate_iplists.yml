@@ -14,16 +14,10 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
 
-      # Download and generate IP-Lists
-      - name: Run a multi-line script
-        run: |
-          cd $GITHUB_WORKSPACE/iplists
-          mkdir tmp
-          
       # Generate GoogleBot IP-List
       - name: Run a multi-line script
         run: |
-          curl -s https://developers.google.com/static/search/apis/ipranges/googlebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' > googlebot.ips
+          curl -s https://developers.google.com/static/search/apis/ipranges/googlebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' > $GITHUB_WORKSPACE/iplists/googlebot.ips
      
       # Commit & push updated IP-Lists into this Repo
       - name: Run a multi-line script
