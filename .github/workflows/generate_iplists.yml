@@ -28,6 +28,12 @@ jobs:
       - name: Generate DuckDuckBot P-List # Source: https://help.duckduckgo.com/duckduckgo-help-pages/results/duckduckbot/
         run: curl -s https://raw.githubusercontent.com/duckduckgo/duckduckgo-help-pages/master/_docs/results/duckduckbot.md | grep "^\- " | awk '{gsub("-",""); print}' | awk '{gsub(/ /,""); print}' > $GITHUB_WORKSPACE/iplists/duckduckbot.ips
 
+      - name: Get Telegram IP List
+        run: curl -s https://core.telegram.org/resources/cidr.txt > $GITHUB_WORKSPACE/iplists/telegrambot.ips
+
+      - name: Get UptimeRobot IP List # Source: https://uptimerobot.com/help/locations/
+        run: curl -s https://uptimerobot.com/inc/files/ips/IPv4andIPv6.txt > $GITHUB_WORKSPACE/iplists/uptimerobot.ips
+
       - name: Commit & push updated IP-Lists into this Repo
         run: |
           git config user.name 'github-actions[bot]'
