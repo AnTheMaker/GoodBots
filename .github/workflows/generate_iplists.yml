@@ -26,8 +26,7 @@ jobs:
       - name: Generate DuckDuckBot P-List # Source: https://help.duckduckgo.com/duckduckgo-help-pages/results/duckduckbot/
         run: curl -s https://raw.githubusercontent.com/duckduckgo/duckduckgo-help-pages/master/_docs/results/duckduckbot.md | grep "^\- " | awk '{gsub("-",""); print}' | awk '{gsub(/ /,""); print}' > $GITHUB_WORKSPACE/iplists/duckduckbot.ips
 
-      # Commit & push updated IP-Lists into this Repo
-      - name: Run a multi-line script
+      - name: Commit & push updated IP-Lists into this Repo
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
