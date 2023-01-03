@@ -18,6 +18,11 @@ jobs:
       - name: Run a multi-line script
         run: |
           curl -s https://developers.google.com/static/search/apis/ipranges/googlebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' > $GITHUB_WORKSPACE/iplists/googlebot.ips
+   
+      # Generate BingBot IP-List
+      - name: Run a multi-line script
+        run: |
+          curl -s https://www.bing.com/toolbox/bingbot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' > $GITHUB_WORKSPACE/iplists/bingbot.ips
      
       # Commit & push updated IP-Lists into this Repo
       - name: Run a multi-line script
