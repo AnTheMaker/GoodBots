@@ -1,0 +1,35 @@
+name: Generate IP Lists
+
+on:
+  schedule:
+    # Runs once a day at midnight
+    - cron: '0 0 * * *'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+
+      # Download and generate IP-Lists
+      - name: Run a multi-line script
+        run: |
+          cd $GITHUB_WORKSPACE/iplists
+          mkdir tmp
+          
+      # Generate GoogleBot IP-List
+      - name: Run a multi-line script
+        run: |
+          curl -s https://developers.google.com/static/search/apis/ipranges/googlebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' > googlebot.ips
+     
+      # Commit & push updated IP-Lists into this Repo
+      - name: Run a multi-line script
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .
+          git commit -m "Daily auto update of the IP-Lists"
+          git push
