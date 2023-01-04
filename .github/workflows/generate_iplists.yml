@@ -25,7 +25,7 @@ jobs:
           sudo apt install -y whois
           whois -h whois.radb.net -- '-i origin AS32934' | grep ^route | awk '{gsub("(route:|route6:)","");print}' | awk '{gsub(/ /,""); print}' > $GITHUB_WORKSPACE/iplists/facebookbot.ips
      
-      - name: Generate DuckDuckBot P-List # Source: https://help.duckduckgo.com/duckduckgo-help-pages/results/duckduckbot/
+      - name: Generate DuckDuckBot IP-List # Source: https://help.duckduckgo.com/duckduckgo-help-pages/results/duckduckbot/
         run: curl -s https://raw.githubusercontent.com/duckduckgo/duckduckgo-help-pages/master/_docs/results/duckduckbot.md | grep "^\- " | awk '{gsub("-",""); print}' | awk '{gsub(/ /,""); print}' > $GITHUB_WORKSPACE/iplists/duckduckbot.ips
 
       - name: Get Telegram IP List
@@ -33,6 +33,9 @@ jobs:
 
       - name: Get UptimeRobot IP List # Source: https://uptimerobot.com/help/locations/
         run: curl -s https://uptimerobot.com/inc/files/ips/IPv4andIPv6.txt > $GITHUB_WORKSPACE/iplists/uptimerobot.ips
+
+      - name: Create merged/total IP-List (all.ips)
+        run: cat $GITHUB_WORKSPACE/iplists/* > $GITHUB_WORKSPACE/all.ips
 
       - name: Commit & push updated IP-Lists into this Repo
         run: |
