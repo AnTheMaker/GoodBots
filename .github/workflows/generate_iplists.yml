@@ -20,6 +20,9 @@ jobs:
       - name: Generate BingBot IP-List
         run: curl -s https://www.bing.com/toolbox/bingbot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' > $GITHUB_WORKSPACE/iplists/bingbot.ips
 
+      - name: Generate AhrefsBot IP-List # Source: https://help.ahrefs.com/en/articles/78658-what-is-the-list-of-your-ip-ranges
+        run: curl -s https://api.ahrefs.com/v3/public/crawler-ips | jq -r '.ips[].ip_address | select( . != null )' > $GITHUB_WORKSPACE/iplists/ahrefsbot.ips
+        
       - name: Generate FacebookBot IP-List # Source: https://developers.facebook.com/docs/sharing/webmasters/crawler/
         run: |
           sudo apt install -y whois
