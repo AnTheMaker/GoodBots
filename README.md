@@ -13,6 +13,9 @@ The lists are updated daily via a scheduled GitHub Action.
 │
 └── iplists/
     │
+    ├── ahrefsbot.ips
+    │   IP-Addresses used by the AhrefsBot Crawler
+    │   
     ├── applebot.ips
     │   Apple doesn't publish its "AppleBot" Crawler IPs, so this list includes all Apple IPs →TODO: Find better solution
     │   
