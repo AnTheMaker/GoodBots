@@ -39,5 +39,8 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add .
-          git commit -m "Daily auto update of the IP-Lists"
-          git push
+          if git status | grep -q modified;
+          then
+            git commit -m "Daily auto update of the IP-Lists"
+            git push
+          fi
