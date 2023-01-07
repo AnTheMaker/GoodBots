@@ -41,6 +41,12 @@ jobs:
         run: |
           curl -s https://my.pingdom.com/probes/ipv4 > $GITHUB_WORKSPACE/iplists/pingdombot.ips
           curl -s https://my.pingdom.com/probes/ipv6 >> $GITHUB_WORKSPACE/iplists/pingdombot.ips
+      
+      - name: Get Stripe Webhook IP List # Source: https://stripe.com/docs/ips
+        run: curl https://stripe.com/files/ips/ips_webhooks.txt > $GITHUB_WORKSPACE/iplists/stripewebhook.ips
+        
+      - name: Get BetterUptime IP List # Source: https://docs.betteruptime.com/frequently-asked-questions
+        run: curl https://betteruptime.com/ips.txt > $GITHUB_WORKSPACE/iplists/betteruptimebot.ips
 
       - name: Create merged/total IP-List (all.ips)
         run: cat $GITHUB_WORKSPACE/iplists/* > $GITHUB_WORKSPACE/all.ips
