@@ -19,6 +19,9 @@ The lists are updated daily via a scheduled GitHub Action.
     ├── applebot.ips
     │   Apple doesn't publish its "AppleBot" Crawler IPs, so this list includes all Apple IPs →TODO: Find better solution
     │   
+    ├── betteruptimebot.ips
+    │   IP-Addesses used by the BetterUptime Bot
+    │   
     ├── bingbot.ips
     │   IP-Addesses used by the Bing Crawler
     │   
@@ -28,6 +31,9 @@ The lists are updated daily via a scheduled GitHub Action.
     ├── facebookbot.ips
     │   IP-Addesses used by the Facebook Link-Preview Bot
     │   
+    ├── freshpingbot.ips
+    │   IP-Addesses used by the Freshping Bot
+    │   
     ├── googlebot.ips
     │   IP-Addesses used by the Google Crawler
     │   
@@ -36,6 +42,9 @@ The lists are updated daily via a scheduled GitHub Action.
     │   
     ├── rssapi.ips
     │   IP-Addesses used by the RSSAPI.net Feed parser
+    │   
+    ├── stripewebhook.ips
+    │   IP-Addesses used by Stripe to send out Webhooks
     │   
     ├── telegrambot.ips
     │   IP-Addesses used by the Telegram Link-Preview Bot
