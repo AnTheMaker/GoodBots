@@ -37,6 +37,11 @@ jobs:
       - name: Get UptimeRobot IP List # Source: https://uptimerobot.com/help/locations/
         run: curl -s https://uptimerobot.com/inc/files/ips/IPv4andIPv6.txt > $GITHUB_WORKSPACE/iplists/uptimerobot.ips
 
+      - name: Get Pingdom IP List # Source: https://documentation.solarwinds.com/en/success_center/pingdom/content/topics/pingdom-probe-servers-ip-addresses.htm
+        run: |
+          curl -s https://my.pingdom.com/probes/ipv4 > $GITHUB_WORKSPACE/iplists/pingdombot.ips
+          curl -s https://my.pingdom.com/probes/ipv6 >> $GITHUB_WORKSPACE/iplists/pingdombot.ips
+
       - name: Create merged/total IP-List (all.ips)
         run: cat $GITHUB_WORKSPACE/iplists/* > $GITHUB_WORKSPACE/all.ips
 
