@@ -37,6 +37,9 @@ The lists are updated daily via a scheduled GitHub Action.
     ├── googlebot.ips
     │   IP-Addesses used by the Google Crawler
     │   
+    ├── mojeekbot.ips
+    │   IP-Addesses used by the Mojeek Crawler
+    │   
     ├── pingdombot.ips
     │   IP-Addesses used by the Pingdom Bot
     │   
