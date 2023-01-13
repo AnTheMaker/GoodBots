@@ -45,6 +45,9 @@ jobs:
       - name: Get Stripe Webhook IP List # Source: https://stripe.com/docs/ips
         run: curl https://stripe.com/files/ips/ips_webhooks.txt > $GITHUB_WORKSPACE/iplists/stripewebhook.ips
         
+      - name: Get RSS API IP List # Source: https://rssapi.net/faq
+        run: curl https://rssapi.net/ips.txt > $GITHUB_WORKSPACE/iplists/rssapi.ips
+        
       - name: Get BetterUptime IP List # Source: https://docs.betteruptime.com/frequently-asked-questions
         run: curl https://betteruptime.com/ips.txt > $GITHUB_WORKSPACE/iplists/betteruptimebot.ips
 
