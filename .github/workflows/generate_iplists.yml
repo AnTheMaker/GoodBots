@@ -51,8 +51,8 @@ jobs:
       - name: Get BetterUptime IP List # Source: https://docs.betteruptime.com/frequently-asked-questions
         run: curl https://betteruptime.com/ips.txt > $GITHUB_WORKSPACE/iplists/betteruptimebot.ips
 
-      - name: Create merged/total IP-List (all.ips)
-        run: cat $GITHUB_WORKSPACE/iplists/* > $GITHUB_WORKSPACE/all.ips
+      - name: Create merged/total IP-List (all.ips) # Use grep to merge files and ensure proper new-lines between every file, but remove any empty new-lines
+        run: grep -h -v '^[[:space:]]*$' $GITHUB_WORKSPACE/iplists/*.ips > $GITHUB_WORKSPACE/all.ips
 
       - name: Commit & push updated IP-Lists into this Repo
         run: |
