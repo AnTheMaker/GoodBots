@@ -39,6 +39,9 @@ The lists are updated daily via a scheduled GitHub Action.
     ├── googlebot.ips
     │   IP-Addesses used by the Google Crawler
     │   
+    ├── internal.ips
+    │   Internal IP-Addresses
+    │   
     ├── mojeekbot.ips
     │   IP-Addesses used by the Mojeek Crawler
     │   
