@@ -15,44 +15,44 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Generate GoogleBot IP-List
-        run: curl -s https://developers.google.com/static/search/apis/ipranges/googlebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' > $GITHUB_WORKSPACE/iplists/googlebot.ips
+        run: curl -s https://developers.google.com/static/search/apis/ipranges/googlebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/googlebot.ips
  
       - name: Generate BingBot IP-List
-        run: curl -s https://www.bing.com/toolbox/bingbot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' > $GITHUB_WORKSPACE/iplists/bingbot.ips
+        run: curl -s https://www.bing.com/toolbox/bingbot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/bingbot.ips
 
       - name: Generate AhrefsBot IP-List # Source: https://help.ahrefs.com/en/articles/78658-what-is-the-list-of-your-ip-ranges
-        run: curl -s https://api.ahrefs.com/v3/public/crawler-ips | jq -r '.ips[].ip_address | select( . != null )' > $GITHUB_WORKSPACE/iplists/ahrefsbot.ips
+        run: curl -s https://api.ahrefs.com/v3/public/crawler-ips | jq -r '.ips[].ip_address | select( . != null )' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/ahrefsbot.ips
         
       - name: Generate FacebookBot IP-List # Source: https://developers.facebook.com/docs/sharing/webmasters/crawler/
         run: |
           sudo apt install -y whois
-          whois -h whois.radb.net -- '-i origin AS32934' | grep ^route | awk '{gsub("(route:|route6:)","");print}' | awk '{gsub(/ /,""); print}' > $GITHUB_WORKSPACE/iplists/facebookbot.ips
+          whois -h whois.radb.net -- '-i origin AS32934' | grep ^route | awk '{gsub("(route:|route6:)","");print}' | awk '{gsub(/ /,""); print}' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/facebookbot.ips
      
       - name: Generate DuckDuckBot IP-List # Source: https://help.duckduckgo.com/duckduckgo-help-pages/results/duckduckbot/
-        run: curl -s https://raw.githubusercontent.com/duckduckgo/duckduckgo-help-pages/master/_docs/results/duckduckbot.md | grep "^\- " | awk '{gsub("-",""); print}' | awk '{gsub(/ /,""); print}' > $GITHUB_WORKSPACE/iplists/duckduckbot.ips
+        run: curl -s https://raw.githubusercontent.com/duckduckgo/duckduckgo-help-pages/master/_docs/results/duckduckbot.md | grep "^\- " | awk '{gsub("-",""); print}' | awk '{gsub(/ /,""); print}' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/duckduckbot.ips
 
       - name: Get Telegram IP List
-        run: curl -s https://core.telegram.org/resources/cidr.txt > $GITHUB_WORKSPACE/iplists/telegrambot.ips
+        run: curl -s https://core.telegram.org/resources/cidr.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/telegrambot.ips
 
       - name: Get UptimeRobot IP List # Source: https://uptimerobot.com/help/locations/
-        run: curl -s https://uptimerobot.com/inc/files/ips/IPv4andIPv6.txt > $GITHUB_WORKSPACE/iplists/uptimerobot.ips
+        run: curl -s https://uptimerobot.com/inc/files/ips/IPv4andIPv6.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/uptimerobot.ips
 
       - name: Get Pingdom IP List # Source: https://documentation.solarwinds.com/en/success_center/pingdom/content/topics/pingdom-probe-servers-ip-addresses.htm
         run: |
-          curl -s https://my.pingdom.com/probes/ipv4 > $GITHUB_WORKSPACE/iplists/pingdombot.ips
-          curl -s https://my.pingdom.com/probes/ipv6 >> $GITHUB_WORKSPACE/iplists/pingdombot.ips
+          curl -s https://my.pingdom.com/probes/ipv4 | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/pingdombot.ips
+          curl -s https://my.pingdom.com/probes/ipv6 | tr -d "[:blank:]" >> $GITHUB_WORKSPACE/iplists/pingdombot.ips
       
       - name: Get Stripe Webhook IP List # Source: https://stripe.com/docs/ips
-        run: curl https://stripe.com/files/ips/ips_webhooks.txt > $GITHUB_WORKSPACE/iplists/stripewebhook.ips
+        run: curl https://stripe.com/files/ips/ips_webhooks.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/stripewebhook.ips
         
       - name: Get RSS API IP List # Source: https://rssapi.net/faq
-        run: curl https://rssapi.net/ips.txt > $GITHUB_WORKSPACE/iplists/rssapi.ips
+        run: curl https://rssapi.net/ips.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/rssapi.ips
         
       - name: Get BetterUptime IP List # Source: https://docs.betteruptime.com/frequently-asked-questions
-        run: curl https://betteruptime.com/ips.txt > $GITHUB_WORKSPACE/iplists/betteruptimebot.ips
+        run: curl https://betteruptime.com/ips.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/betteruptimebot.ips
 
       - name: Create merged/total IP-List (all.ips) # Use grep to merge files and ensure proper new-lines between every file, but remove any empty new-lines
-        run: grep -h -v '^[[:space:]]*$' $GITHUB_WORKSPACE/iplists/*.ips > $GITHUB_WORKSPACE/all.ips
+        run: grep -h -v '^[[:space:]]*$' $GITHUB_WORKSPACE/iplists/*.ips | tr -d "[:blank:]" > $GITHUB_WORKSPACE/all.ips
 
       - name: Commit & push updated IP-Lists into this Repo
         run: |
