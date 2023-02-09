@@ -4,7 +4,6 @@ on:
   schedule:
     # Runs once a day at midnight
     - cron: '0 0 * * *'
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 jobs:
@@ -66,7 +65,7 @@ jobs:
           curl -s https://www.cloudflare.com/ips-v6 | tr -d "[:blank:]" >> $GITHUB_WORKSPACE/iplists/cloudflare.ips
 
       - name: Create merged/total IP-List (all.ips) # Use grep to merge files and ensure proper new-lines between every file, but remove any empty new-lines
-        run: grep -h -v '^[[:space:]]*$' $GITHUB_WORKSPACE/iplists/*.ips | tr -d "[:blank:]" > $GITHUB_WORKSPACE/all.ips
+        run: grep -h -v '^[[:space:]]*$' $GITHUB_WORKSPACE/iplists/*.ips | uniq -u | tr -d "[:blank:]" > $GITHUB_WORKSPACE/all.ips
 
       - name: Commit & push updated IP-Lists into this Repo
         run: |
