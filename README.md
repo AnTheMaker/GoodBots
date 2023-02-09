@@ -66,7 +66,10 @@ The lists are updated daily via a scheduled GitHub Action.
     ├── twitterbot.ips
     │   IP-Addesses used by the Twitter Link-Preview Bot
     │
-    └── uptimerobot.ips 
-        IP-Addesses used by UptimeRobot.com
+    ├── uptimerobot.ips
+    │   IP-Addesses used by UptimeRobot.com
+    │
+    └── webpagetestbot.ips 
+        IP-Addesses used by Webpagetest.org
         
 ```
