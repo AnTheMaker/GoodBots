@@ -11,8 +11,11 @@ jobs:
   generate:
     runs-on: ubuntu-latest
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: whois
+          version: 1.0
 
       - name: Generate GoogleBot IP-List
         run: curl -s https://developers.google.com/static/search/apis/ipranges/googlebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/googlebot.ips
@@ -24,9 +27,7 @@ jobs:
         run: curl -s https://api.ahrefs.com/v3/public/crawler-ips | jq -r '.ips[].ip_address | select( . != null )' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/ahrefsbot.ips
         
       - name: Generate FacebookBot IP-List # Source: https://developers.facebook.com/docs/sharing/webmasters/crawler/
-        run: |
-          sudo apt install -y whois
-          whois -h whois.radb.net -- '-i origin AS32934' | grep ^route | awk '{gsub("(route:|route6:)","");print}' | awk '{gsub(/ /,""); print}' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/facebookbot.ips
+        run: whois -h whois.radb.net -- '-i origin AS32934' | grep ^route | awk '{gsub("(route:|route6:)","");print}' | awk '{gsub(/ /,""); print}' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/facebookbot.ips
      
       - name: Generate DuckDuckBot IP-List # Source: https://help.duckduckgo.com/duckduckgo-help-pages/results/duckduckbot/
         run: curl -s https://raw.githubusercontent.com/duckduckgo/duckduckgo-help-pages/master/_docs/results/duckduckbot.md | grep "^\- " | awk '{gsub("-",""); print}' | awk '{gsub(/ /,""); print}' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/duckduckbot.ips
