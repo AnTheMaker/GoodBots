@@ -51,12 +51,15 @@ jobs:
       - name: Get BetterUptime IP List # Source: https://docs.betteruptime.com/frequently-asked-questions
         run: curl -s https://betteruptime.com/ips.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/betteruptimebot.ips
         
+      - name: Generate WebpagetestBot IP-List # Source: https://www.webpagetest.org/addresses.php
+        run: curl -s https://www.webpagetest.org/addresses.php?f=json | jq -r '.data[].addresses[] | select( . != null )' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/webpagetestbot.ips
+        
       - name: Get BunnyCDN IP List # Source: https://support.bunny.net/hc/en-us/articles/115001131172-I-am-seeing-a-lot-of-502-and-504-errors
         run: |
           curl -s https://api.bunny.net/system/edgeserverlist/plain | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/bunnycdn.ips
           curl -s https://api.bunny.net/system/edgeserverlist/ipv6 | jq -r '.[] | select( . != null )' | tr -d "[:blank:]" >> $GITHUB_WORKSPACE/iplists/bunnycdn.ips
           
-      - name: Get Cloudflare IP List # Source: https://support.bunny.net/hc/en-us/articles/115001131172-I-am-seeing-a-lot-of-502-and-504-errors
+      - name: Get Cloudflare IP List # Source: https://www.cloudflare.com/ips/
         run: |
           curl -s https://www.cloudflare.com/ips-v4 | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/cloudflare.ips
           curl -s https://www.cloudflare.com/ips-v6 | tr -d "[:blank:]" >> $GITHUB_WORKSPACE/iplists/cloudflare.ips
