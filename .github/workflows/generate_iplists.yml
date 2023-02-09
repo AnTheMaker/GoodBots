@@ -55,6 +55,11 @@ jobs:
         run: |
           curl -s https://api.bunny.net/system/edgeserverlist/plain | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/bunnycdn.ips
           curl -s https://api.bunny.net/system/edgeserverlist/ipv6 | jq -r '.[] | select( . != null )' | tr -d "[:blank:]" >> $GITHUB_WORKSPACE/iplists/bunnycdn.ips
+          
+      - name: Get Cloudflare IP List # Source: https://support.bunny.net/hc/en-us/articles/115001131172-I-am-seeing-a-lot-of-502-and-504-errors
+        run: |
+          curl -s https://www.cloudflare.com/ips-v4 | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/cloudflare.ips
+          curl -s https://www.cloudflare.com/ips-v6 | tr -d "[:blank:]" >> $GITHUB_WORKSPACE/iplists/cloudflare.ips
 
       - name: Create merged/total IP-List (all.ips) # Use grep to merge files and ensure proper new-lines between every file, but remove any empty new-lines
         run: grep -h -v '^[[:space:]]*$' $GITHUB_WORKSPACE/iplists/*.ips | tr -d "[:blank:]" > $GITHUB_WORKSPACE/all.ips
