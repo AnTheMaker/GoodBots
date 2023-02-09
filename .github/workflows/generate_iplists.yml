@@ -43,13 +43,18 @@ jobs:
           curl -s https://my.pingdom.com/probes/ipv6 | tr -d "[:blank:]" >> $GITHUB_WORKSPACE/iplists/pingdombot.ips
       
       - name: Get Stripe Webhook IP List # Source: https://stripe.com/docs/ips
-        run: curl https://stripe.com/files/ips/ips_webhooks.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/stripewebhook.ips
+        run: curl -s https://stripe.com/files/ips/ips_webhooks.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/stripewebhook.ips
         
       - name: Get RSS API IP List # Source: https://rssapi.net/faq
-        run: curl https://rssapi.net/ips.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/rssapi.ips
+        run: curl -s https://rssapi.net/ips.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/rssapi.ips
         
       - name: Get BetterUptime IP List # Source: https://docs.betteruptime.com/frequently-asked-questions
-        run: curl https://betteruptime.com/ips.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/betteruptimebot.ips
+        run: curl -s https://betteruptime.com/ips.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/betteruptimebot.ips
+        
+      - name: Get BunnyCDN IP List # Source: https://support.bunny.net/hc/en-us/articles/115001131172-I-am-seeing-a-lot-of-502-and-504-errors
+        run: |
+          curl -s https://api.bunny.net/system/edgeserverlist/plain | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/bunnycdn.ips
+          curl -s https://api.bunny.net/system/edgeserverlist/ipv6 | jq -r '.[] | select( . != null )' | tr -d "[:blank:]" >> $GITHUB_WORKSPACE/iplists/bunnycdn.ips
 
       - name: Create merged/total IP-List (all.ips) # Use grep to merge files and ensure proper new-lines between every file, but remove any empty new-lines
         run: grep -h -v '^[[:space:]]*$' $GITHUB_WORKSPACE/iplists/*.ips | tr -d "[:blank:]" > $GITHUB_WORKSPACE/all.ips
