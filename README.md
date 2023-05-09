@@ -54,6 +54,9 @@ The lists are updated daily via a scheduled GitHub Action.
     ├── internal.ips
     │   Internal IP-Addresses
     │   
+    ├── marginalia.ips
+    │   IP-Addresses used by the Marginalia Search Crawler
+    │   
     ├── mojeekbot.ips
     │   IP-Addesses used by the Mojeek Crawler
     │   
