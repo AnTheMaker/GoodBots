@@ -50,9 +50,10 @@ jobs:
         
       - name: Get RSS API IP List # Source: https://rssapi.net/faq
         run: curl -s https://rssapi.net/ips.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/rssapi.ips
-        
-      - name: Get BetterUptime IP List # Source: https://docs.betteruptime.com/frequently-asked-questions
-        run: curl -s https://betteruptime.com/ips.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/betteruptimebot.ips
+
+# TEMP: disabled because of firewall        
+#      - name: Get BetterUptime IP List # Source: https://docs.betteruptime.com/frequently-asked-questions
+#        run: curl -s https://betteruptime.com/ips.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/betteruptimebot.ips
         
       - name: Generate WebpagetestBot IP-List # Source: https://www.webpagetest.org/addresses.php
         run: curl -s https://www.webpagetest.org/addresses.php?f=json | jq -r '.data[].addresses[] | select( . != null )' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/webpagetestbot.ips
