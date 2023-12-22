@@ -60,7 +60,7 @@ The lists are updated daily via a scheduled GitHub Action.
     ├── mojeekbot.ips
     │   IP-Addesses used by the Mojeek Crawler
     │   
-    ├── molliewehook.ips
+    ├── molliewebhook.ips
     │   IP-Addesses used by Mollie to send out Webhooks
     │   
     ├── pingdombot.ips
