@@ -31,9 +31,6 @@ jobs:
       - name: Generate DuckDuckBot IP-List # Source: https://help.duckduckgo.com/duckduckgo-help-pages/results/duckduckbot/
         run: curl -s https://raw.githubusercontent.com/duckduckgo/duckduckgo-help-pages/master/_docs/results/duckduckbot.md | grep "^\- " | awk '{gsub("-",""); print}' | awk '{gsub(/ /,""); print}' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/duckduckbot.ips
       
-      - name: Generate Marginalia IP-List # https://www.marginalia.nu/marginalia-search/for-webmasters/
-        run: curl -s https://raw.githubusercontent.com/MarginaliaSearch/www.marginalia.nu/main/content/marginalia-search/for-webmasters.md | grep "^IP address:" | awk '{print $3}' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/marginalia.ips
-      
       - name: Get Telegram IP List
         run: curl -s https://core.telegram.org/resources/cidr.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/telegrambot.ips
 
