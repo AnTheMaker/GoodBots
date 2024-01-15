@@ -47,9 +47,6 @@ jobs:
         
       - name: Get RSS API IP List # Source: https://rssapi.net/faq
         run: curl -s https://rssapi.net/ips.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/rssapi.ips
-        
-      - name: Get Outage Owl IP List
-        run: curl -s https://outageowl.com/ips.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/outageowl.ips
 
 # TEMP: disabled because of firewall        
 #      - name: Get BetterUptime IP List # Source: https://docs.betteruptime.com/frequently-asked-questions
