@@ -63,6 +63,9 @@ The lists are updated daily via a scheduled GitHub Action.
     ├── molliewebhook.ips
     │   IP-Addesses used by Mollie to send out Webhooks
     │   
+    ├── outageowl.ips
+    │   IP-Addesses used by the Outage Owl Bot
+    │   
     ├── pingdombot.ips
     │   IP-Addesses used by the Pingdom Bot
     │   
