@@ -63,8 +63,9 @@ jobs:
       - name: Get Cloudflare IP List # Source: https://www.cloudflare.com/ips/
         run: |
           curl -s https://www.cloudflare.com/ips-v4 | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/cloudflare.ips
-          echo "" >> $GITHUB_WORKSPACE/iplists/cloudflare.ips
+          echo "" >> $GITHUB_WORKSPACE/iplists/cloudflare.ips # join lists with new line (will be filtered out later)
           curl -s https://www.cloudflare.com/ips-v6 | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists/cloudflare.ips
+          cat $GITHUB_WORKSPACE/iplists/cloudflare.ips | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/cloudflare.ips
 
       - name: Create merged/total IP-List (all.ips) # Use grep to merge files and ensure proper new-lines between every file, but remove any empty new-lines
         run: grep -h -v '^[[:space:]]*$' $GITHUB_WORKSPACE/iplists/*.ips | uniq -u | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/all.ips
