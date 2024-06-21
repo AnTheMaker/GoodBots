@@ -17,10 +17,18 @@ validate_ipv4_cidr() {
 # Function to validate IPv6 CIDR
 validate_ipv6_cidr() {
     local ip_cidr="$1"
-    if [[ $ip_cidr =~ ^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}(/[0-9]{1,3})?$ ]]; then
+    if [[ $ip_cidr =~ ^([0-9a-fA-F]{0,4}:){1,7}([0-9a-fA-F]{0,4})?(/[0-9]{1,3})?$ ]]; then
         IFS='/' read -r ip cidr <<< "$ip_cidr"
-        [[ ($cidr -eq 0 || $cidr -ge 8) && $cidr -le 128 ]]
-        return $?
+        # Count the number of colons
+        local colon_count=$(grep -o ':' <<< "$ip" | wc -l)
+        # Check if there's a double colon (::) for compressed notation
+        if [[ $ip == *"::"* ]]; then
+            [[ $colon_count -le 7 ]] || return 1
+        else
+            [[ $colon_count -eq 7 ]] || return 1
+        fi
+        [[ -z "$cidr" || ($cidr -ge 0 && $cidr -le 128) ]] || return 1
+        return 0
     fi
     return 1
 }
