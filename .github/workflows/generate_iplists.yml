@@ -17,57 +17,57 @@ jobs:
           version: 1.0
 
       - name: Generate GoogleBot IP-List
-        run: curl -s https://developers.google.com/static/search/apis/ipranges/googlebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/googlebot.ips
+        run: curl -s https://developers.google.com/static/search/apis/ipranges/googlebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/googlebot.ips
  
       - name: Generate BingBot IP-List
-        run: curl -s https://www.bing.com/toolbox/bingbot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/bingbot.ips
+        run: curl -s https://www.bing.com/toolbox/bingbot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/bingbot.ips
 
       - name: Generate AhrefsBot IP-List # Source: https://help.ahrefs.com/en/articles/78658-what-is-the-list-of-your-ip-ranges
-        run: curl -s https://api.ahrefs.com/v3/public/crawler-ips | jq -r '.ips[].ip_address | select( . != null )' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/ahrefsbot.ips
+        run: curl -s https://api.ahrefs.com/v3/public/crawler-ips | jq -r '.ips[].ip_address | select( . != null )' | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/ahrefsbot.ips
         
       - name: Generate FacebookBot IP-List # Source: https://developers.facebook.com/docs/sharing/webmasters/crawler/
-        run: whois -h whois.radb.net -- '-i origin AS32934' | grep ^route | awk '{gsub("(route:|route6:)","");print}' | awk '{gsub(/ /,""); print}' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/facebookbot.ips
+        run: whois -h whois.radb.net -- '-i origin AS32934' | grep ^route | awk '{gsub("(route:|route6:)","");print}' | awk '{gsub(/ /,""); print}' | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/facebookbot.ips
      
       - name: Generate DuckDuckBot IP-List # Source: https://help.duckduckgo.com/duckduckgo-help-pages/results/duckduckbot/
-        run: curl -s https://raw.githubusercontent.com/duckduckgo/duckduckgo-help-pages/master/_docs/results/duckduckbot.md | grep "^\- " | awk '{gsub("-",""); print}' | awk '{gsub(/ /,""); print}' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/duckduckbot.ips
+        run: curl -s https://raw.githubusercontent.com/duckduckgo/duckduckgo-help-pages/master/_docs/results/duckduckbot.md | grep "^\- " | awk '{gsub("-",""); print}' | awk '{gsub(/ /,""); print}' | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/duckduckbot.ips
       
       - name: Get Telegram IP List
-        run: curl -s https://core.telegram.org/resources/cidr.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/telegrambot.ips
+        run: curl -s https://core.telegram.org/resources/cidr.txt | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/telegrambot.ips
 
       - name: Get UptimeRobot IP List # Source: https://uptimerobot.com/help/locations/
-        run: curl -s https://uptimerobot.com/inc/files/ips/IPv4andIPv6.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/uptimerobot.ips
+        run: curl -s https://uptimerobot.com/inc/files/ips/IPv4andIPv6.txt | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/uptimerobot.ips
 
       - name: Get Pingdom IP List # Source: https://documentation.solarwinds.com/en/success_center/pingdom/content/topics/pingdom-probe-servers-ip-addresses.htm
         run: |
-          curl -s https://my.pingdom.com/probes/ipv4 | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/pingdombot.ips
-          curl -s https://my.pingdom.com/probes/ipv6 | tr -d "[:blank:]" >> $GITHUB_WORKSPACE/iplists/pingdombot.ips
+          curl -s https://my.pingdom.com/probes/ipv4 | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/pingdombot.ips
+          curl -s https://my.pingdom.com/probes/ipv6 | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists/pingdombot.ips
       
       - name: Get Stripe Webhook IP List # Source: https://stripe.com/docs/ips
-        run: curl -s https://stripe.com/files/ips/ips_webhooks.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/stripewebhook.ips
+        run: curl -s https://stripe.com/files/ips/ips_webhooks.txt | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/stripewebhook.ips
         
       - name: Get RSS API IP List # Source: https://rssapi.net/faq
-        run: curl -s https://rssapi.net/ips.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/rssapi.ips
+        run: curl -s https://rssapi.net/ips.txt | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/rssapi.ips
 
 # TEMP: disabled because of firewall        
 #      - name: Get BetterUptime IP List # Source: https://docs.betteruptime.com/frequently-asked-questions
-#        run: curl -s https://betteruptime.com/ips.txt | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/betteruptimebot.ips
+#        run: curl -s https://betteruptime.com/ips.txt | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/betteruptimebot.ips
         
       - name: Generate WebpagetestBot IP-List # Source: https://www.webpagetest.org/addresses.php
-        run: curl -s https://www.webpagetest.org/addresses.php?f=json | jq -r '.data[].addresses[] | select( . != null )' | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/webpagetestbot.ips
+        run: curl -s https://www.webpagetest.org/addresses.php?f=json | jq -r '.data[].addresses[] | select( . != null )' | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/webpagetestbot.ips
         
       - name: Get BunnyCDN IP List # Source: https://support.bunny.net/hc/en-us/articles/115001131172-I-am-seeing-a-lot-of-502-and-504-errors
         run: |
-          curl -s https://api.bunny.net/system/edgeserverlist/plain | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/bunnycdn.ips
-          curl -s https://api.bunny.net/system/edgeserverlist/ipv6 | jq -r '.[] | select( . != null )' | tr -d "[:blank:]" >> $GITHUB_WORKSPACE/iplists/bunnycdn.ips
+          curl -s https://api.bunny.net/system/edgeserverlist/plain | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/bunnycdn.ips
+          curl -s https://api.bunny.net/system/edgeserverlist/ipv6 | jq -r '.[] | select( . != null )' | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists/bunnycdn.ips
           
       - name: Get Cloudflare IP List # Source: https://www.cloudflare.com/ips/
         run: |
-          curl -s https://www.cloudflare.com/ips-v4 | tr -d "[:blank:]" > $GITHUB_WORKSPACE/iplists/cloudflare.ips
+          curl -s https://www.cloudflare.com/ips-v4 | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/cloudflare.ips
           echo "" >> $GITHUB_WORKSPACE/iplists/cloudflare.ips
-          curl -s https://www.cloudflare.com/ips-v6 | tr -d "[:blank:]" >> $GITHUB_WORKSPACE/iplists/cloudflare.ips
+          curl -s https://www.cloudflare.com/ips-v6 | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists/cloudflare.ips
 
       - name: Create merged/total IP-List (all.ips) # Use grep to merge files and ensure proper new-lines between every file, but remove any empty new-lines
-        run: grep -h -v '^[[:space:]]*$' $GITHUB_WORKSPACE/iplists/*.ips | uniq -u | tr -d "[:blank:]" > $GITHUB_WORKSPACE/all.ips
+        run: grep -h -v '^[[:space:]]*$' $GITHUB_WORKSPACE/iplists/*.ips | uniq -u | tr -d "[:blank:]" | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/all.ips
 
       - name: Commit & push updated IP-Lists into this Repo
         run: |
