@@ -84,7 +84,10 @@ The lists are updated daily via a scheduled GitHub Action.
     ├── uptimerobot.ips
     │   IP-Addesses used by UptimeRobot.com
     │
-    └── webpagetestbot.ips 
-        IP-Addesses used by Webpagetest.org
+    ├── webpagetestbot.ips
+    │   IP-Addesses used by Webpagetest.org
+    │
+    └── yandex.ips 
+        IP-Addesses used by the Yandex Crawler
         
 ```
