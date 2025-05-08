@@ -79,7 +79,7 @@ The lists are updated daily via a scheduled GitHub Action.
     │   IP-Addesses used by the Telegram Link-Preview Bot
     │   
     ├── twitterbot.ips
-    │   IP-Addesses used by the Twitter Link-Preview Bot
+    │   IP-Addesses used by the Twitter/X Link-Preview Bot
     │
     ├── uptimerobot.ips
     │   IP-Addesses used by UptimeRobot.com
