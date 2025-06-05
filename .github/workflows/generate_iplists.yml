@@ -22,6 +22,9 @@ jobs:
       - name: Generate BingBot IP-List
         run: curl -sL https://www.bing.com/toolbox/bingbot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/bingbot.ips
 
+      - name: Generate AppleBot IP-List
+        run: curl -sL https://search.developer.apple.com/applebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/applebot.ips
+
       - name: Generate Fastly IP-List
         run: curl -sL https://api.fastly.com/public-ip-list | jq -r '.ipv6_addresses[],.addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/fastly.ips
 
