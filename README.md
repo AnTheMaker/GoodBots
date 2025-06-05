@@ -39,6 +39,9 @@ The lists are updated daily via a scheduled GitHub Action.
     ├── facebookbot.ips
     │   IP-Addesses used by the Facebook Link-Preview Bot
     │   
+    ├── fastly.ips
+    │   IP-Addesses used by the Fastly CDN
+    │   
     ├── freshpingbot.ips
     │   IP-Addesses used by the Freshping Bot
     │   
