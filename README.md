@@ -33,6 +33,9 @@ The lists are updated daily via a scheduled GitHub Action.
     ├── cloudflare.ips
     │   IP-Addesses used by the Cloudflare CDN
     │   
+    ├── commoncrawlbot.ips
+    │   IP-Addesses used by the CommonCrawl Bot (CCBot)
+    │   
     ├── duckduckbot.ips
     │   IP-Addesses used by the DuckDuckGo Crawler
     │   
