@@ -158,7 +158,8 @@ jobs:
           set -euo pipefail
           : > /tmp/rejected_ipv6_cidrs.txt
 
-          tail -n +2 "$IN_CSV" \
+          # Add '|| true' to avoid noisy "Broken pipe" when the downstream closes early
+          tail -n +2 "$IN_CSV" || true \
           | awk -F, '{
               val=$1; desc=$2; for(i=3;i<=NF;i++) desc=desc","$i;
               gsub(/\r$/,"",desc);
@@ -167,27 +168,35 @@ jobs:
               if (val!="") print val "\t" desc;
             }' \
           | jq -R '
-              # regexes
-              def ipv4: "^([0-9]{1,3}\\.){3}[0-9]{1,3}(/([0-9]|[12][0-9]|3[0-2]))?$";
-              # loose-enough IPv6 (compressed, mixed lengths) optionally with /prefix
-              def ipv6: "^[0-9A-Fa-f:]+(?:/[0-9]{1,3})?$";
+              # --- Regex helpers ---
+              # IPv4 (with optional CIDR /0-32)
+              def ipv4: "^([0-9]{1,3}\\.){3}[0-9]{1,3}(?:/(?:[0-9]|[12][0-9]|3[0-2]))?$";
 
-              # helper: get ipv6 prefix or null if no cidr
+              # IPv6 (compressed/expanded). Allow dots for IPv4-mapped "::ffff:192.0.2.1".
+              # Optional CIDR suffix /0-128 (we will validate 12-128 below for v6 CIDRs).
+              def ipv6_loose: "^[0-9A-Fa-f:.]+(?:/[0-9]{1,3})?$";
+
+              # Extract IPv6 prefix length or null
               def v6_prefix:
                 if test(".*/") then ( capture(".*/(?<p>[0-9]+)$").p | tonumber ) else null end;
 
-              # classify/rewrite -> {"ip","comment","ok":true/false,"why":string?}
+              # Normalize potential zone index (e.g., fe80::1%eth0) -> reject such forms
+              def has_zone: test("%");
+              
+              # Classify a value into {ip, comment, ok, why?}
               def classify:
-                if test(ipv4) then
+                if has_zone then
+                  {ip:., comment:$desc, ok:false, why:"ipv6_zone_index_not_allowed"}
+                elif test(ipv4) then
                   {ip:., comment:$desc, ok:true}
-                elif test(ipv6) then
+                elif test(ipv6_loose) then
                   ( . as $ip
                   | ( $ip | ascii_downcase ) as $low
                   | ($low | v6_prefix) as $p
                   | if $p == null then
-                      {ip:$low, comment:$desc, ok:true}                          # bare IPv6 ok
+                      {ip:$low, comment:$desc, ok:true}                            # bare IPv6 ok
                     elif ($p >= 12 and $p <= 128) then
-                      {ip:$low, comment:$desc, ok:true}                          # IPv6 CIDR within policy
+                      {ip:$low, comment:$desc, ok:true}                            # IPv6 CIDR within Cloudflare policy
                     else
                       {ip:$low, comment:$desc, ok:false, why:("ipv6_cidr_prefix_"+($p|tostring)+"_lt12")}
                     end )
@@ -195,16 +204,16 @@ jobs:
                   {ip:., comment:$desc, ok:false, why:"not_ipv4_or_ipv6"}
                 end;
 
-              # parse TSV -> objects
+              # --- Parse TSV -> objects ---
               [ inputs
                 | select(length>0)
-                | ( . as $line | ( . / "\t") )  # [value, desc]
+                | ( . as $line | ( . / "\t") )        # [value, desc]
                 | .[0] as $v | .[1] as $desc
                 | ($v | gsub("\\s+"; "")) as $v2
                 | ($v2 | classify)
               ] as $objs
 
-              # log rejects to stderr as lines starting with "REJECT\t"
+              # Log rejects to stderr as "REJECT\t<ip>\t<why>"
               | ( $objs
                   | map(select(.ok == false))
                   | map("REJECT\t" + .ip + "\t" + (.why // ""))
@@ -214,20 +223,20 @@ jobs:
                   ( $rej | @text ) | . as $noop
                 else empty end
 
-              # keep only ok
-              | $objs | map(select(.ok)) 
-              # dedupe by identical ip; merge comments
+              # Keep only ok; dedupe by ip; merge comments
+              | $objs | map(select(.ok))
               | sort_by(.ip)
               | group_by(.ip)
-              | map({ ip: .[0].ip,
-                      comment: ( [.[].comment] | map(select(length>0)) | unique | join(", ") )
-                    })
+              | map({
+                  ip: .[0].ip,
+                  comment: ( [.[].comment] | map(select(length>0)) | unique | join(", ") )
+                })
             ' 2> >(grep "^REJECT" | sed 's/^REJECT\t//' >> /tmp/rejected_ipv6_cidrs.txt) \
             > /tmp/items.json
 
           echo "Unique items to upload: $(jq 'length' /tmp/items.json)"
           if [ -s /tmp/rejected_ipv6_cidrs.txt ]; then
-            echo "Some IPv6 CIDRs were rejected (prefix < /12). First few:"
+            echo "Some entries were rejected. First few:"
             head -n 10 /tmp/rejected_ipv6_cidrs.txt || true
           fi
 
@@ -241,7 +250,6 @@ jobs:
           name: rejected-ipv6-cidrs
           path: /tmp/rejected_ipv6_cidrs.txt
           if-no-files-found: ignore
-
       # --- (3) Upload unique items and wait for completion ---
       - name: Update Cloudflare list (replace all items)
         id: cf_put
