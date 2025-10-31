@@ -63,10 +63,10 @@ jobs:
       - name: Generate WebpagetestBot IP-List # Source: https://www.webpagetest.org/addresses.php
         run: curl -sL https://www.webpagetest.org/addresses.php?f=json | jq -r '.data[].addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/webpagetestbot.ips
         
-      - name: Get BunnyCDN IP List # Source: https://support.bunny.net/hc/en-us/articles/115001131172-I-am-seeing-a-lot-of-502-and-504-errors
-        run: |
-          curl -sL https://api.bunny.net/system/edgeserverlist/plain | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/bunnycdn.ips
-          curl -sL https://api.bunny.net/system/edgeserverlist/ipv6 | jq -r '.[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists-botsonly/bunnycdn.ips
+ #     - name: Get BunnyCDN IP List # Source: https://support.bunny.net/hc/en-us/articles/115001131172-I-am-seeing-a-lot-of-502-and-504-errors
+ #       run: |
+ #         curl -sL https://api.bunny.net/system/edgeserverlist/plain | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/bunnycdn.ips
+ #         curl -sL https://api.bunny.net/system/edgeserverlist/ipv6 | jq -r '.[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists-botsonly/bunnycdn.ips
           
  #     - name: Get Cloudflare IP List # Source: https://www.cloudflare.com/ips/
  #       run: |
