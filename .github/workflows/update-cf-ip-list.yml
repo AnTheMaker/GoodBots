@@ -178,54 +178,54 @@ jobs:
           echo "Preview:"
           jq '.[0:5]' /tmp/items.json
 
-      # 3) Replace items in the Cloudflare list and wait for completion
-      - name: Update Cloudflare list (replace all items)
-        id: cf_put
-        shell: bash
-        env:
-          CF_API: https://api.cloudflare.com/client/v4
-          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-          CF_LIST_ID: ${{ secrets.CF_LIST_ID }}
-          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          ITEMS_JSON: ${{ steps.make_json.outputs.items_json }}
-        run: |
-          set -euo pipefail
+ #     # 3) Replace items in the Cloudflare list and wait for completion
+ #     - name: Update Cloudflare list (replace all items)
+ #       id: cf_put
+ #       shell: bash
+ #       env:
+ #         CF_API: https://api.cloudflare.com/client/v4
+ #         CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+ #         CF_LIST_ID: ${{ secrets.CF_LIST_ID }}
+ #         CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+ #         ITEMS_JSON: ${{ steps.make_json.outputs.items_json }}
+ #       run: |
+ #         set -euo pipefail
 
-          echo "Submitting bulk replace to Cloudflare…"
-          RESP=$(curl -sS -X PUT \
-            -H "Authorization: Bearer ${CF_TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data @"${ITEMS_JSON}" \
-            "${CF_API}/accounts/${CF_ACCOUNT_ID}/rules/lists/${CF_LIST_ID}/items")
+ #         echo "Submitting bulk replace to Cloudflare…"
+ #         RESP=$(curl -sS -X PUT \
+ #           -H "Authorization: Bearer ${CF_TOKEN}" \
+ #           -H "Content-Type: application/json" \
+ #           --data @"${ITEMS_JSON}" \
+ #           "${CF_API}/accounts/${CF_ACCOUNT_ID}/rules/lists/${CF_LIST_ID}/items")
 
-          echo "$RESP" | jq .
-          OP_ID=$(echo "$RESP" | jq -r '.result.operation_id // empty')
-          if [ -z "$OP_ID" ]; then
-            echo "No operation_id returned"; exit 1
-          fi
-          echo "operation_id=${OP_ID}" >> "$GITHUB_OUTPUT"
+ #         echo "$RESP" | jq .
+ #         OP_ID=$(echo "$RESP" | jq -r '.result.operation_id // empty')
+ #         if [ -z "$OP_ID" ]; then
+ #           echo "No operation_id returned"; exit 1
+ #         fi
+ #         echo "operation_id=${OP_ID}" >> "$GITHUB_OUTPUT"
 
-      - name: Wait for Cloudflare bulk operation
-        shell: bash
-        env:
-          CF_API: https://api.cloudflare.com/client/v4
-          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          OP_ID: ${{ steps.cf_put.outputs.operation_id }}
-        run: |
-          set -euo pipefail
-          tries=0
-          until [ $tries -ge 60 ]; do
-            r=$(curl -sS \
-              -H "Authorization: Bearer ${CF_TOKEN}" \
-              "${CF_API}/accounts/${CF_ACCOUNT_ID}/rules/lists/bulk_operations/${OP_ID}")
-            status=$(echo "$r" | jq -r '.result.status // .status // "unknown"')
-            echo "Bulk op status: $status"
-            case "$status" in
-              completed) exit 0 ;;
-              failed) echo "$r" | jq .; exit 1 ;;
-            esac
-            tries=$((tries+1))
-            sleep 10
-          done
-          echo "Timed out waiting for bulk operation ${OP_ID}"; exit 1
+ #     - name: Wait for Cloudflare bulk operation
+ #       shell: bash
+ #       env:
+ #         CF_API: https://api.cloudflare.com/client/v4
+ #         CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+ #         CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+ #         OP_ID: ${{ steps.cf_put.outputs.operation_id }}
+ #       run: |
+ #         set -euo pipefail
+ #         tries=0
+ #         until [ $tries -ge 60 ]; do
+ #           r=$(curl -sS \
+ #             -H "Authorization: Bearer ${CF_TOKEN}" \
+ #             "${CF_API}/accounts/${CF_ACCOUNT_ID}/rules/lists/bulk_operations/${OP_ID}")
+ #           status=$(echo "$r" | jq -r '.result.status // .status // "unknown"')
+ #           echo "Bulk op status: $status"
+ #           case "$status" in
+ #             completed) exit 0 ;;
+ #             failed) echo "$r" | jq .; exit 1 ;;
+ #           esac
+ #           tries=$((tries+1))
+ #           sleep 10
+ #         done
+ #         echo "Timed out waiting for bulk operation ${OP_ID}"; exit 1
