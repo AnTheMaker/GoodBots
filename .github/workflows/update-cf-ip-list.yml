@@ -1,0 +1,97 @@
+name: Update Cloudflare IP List
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "all_botsonly.ips"
+  schedule:
+    - cron: "0 1 * * *"  # optional daily refresh at 01:00 UTC
+
+jobs:
+  update-list:
+    runs-on: ubuntu-latest
+    env:
+      CF_API: https://api.cloudflare.com/client/v4
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CF_LIST_ID: ${{ secrets.CF_LIST_ID }}
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate and build JSON payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="all_botsonly.ips"
+          test -s "$FILE"
+
+          # Basic IPv4/CIDR validation (keeps lines that look like IPv4 or CIDR)
+          grep -E '^[0-9]{1,3}(\.[0-9]{1,3}){3}(/([0-9]|[12][0-9]|3[0-2]))?$' "$FILE" \
+            | awk '{$1=$1};1' \
+            | sort -u \
+            > /tmp/ips.txt
+
+          if ! test -s /tmp/ips.txt; then
+            echo "No valid IPv4 entries found."
+            exit 1
+          fi
+
+          # Turn into [{"ip":"1.2.3.4"}, {"ip":"1.2.3.0/24"}]
+          jq -Rcn '[inputs | select(length>0) | {ip:.}]' < /tmp/ips.txt > /tmp/items.json
+          echo "Built payload:"
+          cat /tmp/items.json
+
+      - name: Replace ALL items in the Cloudflare list (bulk)
+        id: put_items
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESP=$(curl -sS -X PUT \
+            -H "Authorization: Bearer ${CF_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data @/tmp/items.json \
+            "${CF_API}/accounts/${CF_ACCOUNT_ID}/rules/lists/${CF_LIST_ID}/items")
+
+          echo "${RESP}" | jq .
+          OP_ID=$(echo "${RESP}" | jq -r '.result.operation_id')
+          if [ -z "${OP_ID}" ] || [ "${OP_ID}" = "null" ]; then
+            echo "Failed to get operation_id from response"
+            exit 1
+          fi
+          echo "operation_id=${OP_ID}" >> "$GITHUB_OUTPUT"
+        # PUT /accounts/{account_id}/rules/lists/{list_id}/items replaces all items; returns operation_id (async).  [oai_citation:1‡Cloudflare Docs](https://developers.cloudflare.com/api/resources/rules/subresources/lists/subresources/items/methods/update/?utm_source=chatgpt.com)
+
+      - name: Wait for bulk operation to complete
+        shell: bash
+        run: |
+          set -euo pipefail
+          OP_ID="${{ steps.put_items.outputs.operation_id }}"
+          STATUS="pending"
+          ATTEMPTS=0
+          MAX_ATTEMPTS=60  # ~10 minutes
+
+          while [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
+            RESP=$(curl -sS \
+              -H "Authorization: Bearer ${CF_TOKEN}" \
+              "${CF_API}/accounts/${CF_ACCOUNT_ID}/rules/lists/bulk_operations/${OP_ID}")
+
+            STATUS=$(echo "$RESP" | jq -r '.result.status // .status // "unknown"')
+            echo "Bulk operation status: $STATUS"
+            if [ "$STATUS" = "completed" ]; then
+              echo "Bulk update completed."
+              exit 0
+            elif [ "$STATUS" = "failed" ]; then
+              echo "Bulk update FAILED:"
+              echo "$RESP" | jq .
+              exit 1
+            fi
+            ATTEMPTS=$((ATTEMPTS+1))
+            sleep 10
+          done
+
+          echo "Timed out waiting for Cloudflare bulk operation ${OP_ID}"
+          exit 1
+        # Polls GET /accounts/{account_id}/rules/lists/bulk_operations/{operation_id}. Status: pending|running|completed|failed.  [oai_citation:2‡Cloudflare Docs](https://developers.cloudflare.com/api/resources/rules/subresources/lists/subresources/bulk_operations/methods/get/?utm_source=chatgpt.com)
