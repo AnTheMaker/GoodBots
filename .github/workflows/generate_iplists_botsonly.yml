@@ -28,8 +28,8 @@ jobs:
       - name: Generate AppleBot IP-List
         run: curl -sL https://search.developer.apple.com/applebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/applebot.ips
 
- #     - name: Generate Fastly IP-List
- #       run: curl -sL https://api.fastly.com/public-ip-list | jq -r '.ipv6_addresses[],.addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/fastly.ips
+      - name: Generate Fastly IP-List
+        run: curl -sL https://api.fastly.com/public-ip-list | jq -r '.ipv6_addresses[],.addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/fastly.ips
 
  #     - name: Generate AhrefsBot IP-List # Source: https://help.ahrefs.com/en/articles/78658-what-is-the-list-of-your-ip-ranges
  #       run: curl -sL https://api.ahrefs.com/v3/public/crawler-ips | jq -r '.ips[].ip_address | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/ahrefsbot.ips
@@ -40,25 +40,25 @@ jobs:
       - name: Generate DuckDuckBot IP-List # Source: https://help.duckduckgo.com/duckduckgo-help-pages/results/duckduckbot/
         run: curl -sL https://raw.githubusercontent.com/duckduckgo/duckduckgo-help-pages/master/_docs/results/duckduckbot.md | grep "^\- " | awk '{gsub("-",""); print}' | awk '{gsub(/ /,""); print}' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/duckduckbot.ips
       
- #     - name: Get Telegram IP List
- #       run: curl -sL https://core.telegram.org/resources/cidr.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/telegrambot.ips
+      - name: Get Telegram IP List
+        run: curl -sL https://core.telegram.org/resources/cidr.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/telegrambot.ips
 
- #     - name: Get UptimeRobot IP List # Source: https://uptimerobot.com/help/locations/
- #       run: curl -sL https://uptimerobot.com/inc/files/ips/IPv4andIPv6.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/uptimerobot.ips
+      - name: Get UptimeRobot IP List # Source: https://uptimerobot.com/help/locations/
+        run: curl -sL https://uptimerobot.com/inc/files/ips/IPv4andIPv6.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/uptimerobot.ips
 
- #     - name: Get Pingdom IP List # Source: https://documentation.solarwinds.com/en/success_center/pingdom/content/topics/pingdom-probe-servers-ip-addresses.htm
- #       run: |
- #         curl -sL https://my.pingdom.com/probes/ipv4 | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/pingdombot.ips
- #         curl -sL https://my.pingdom.com/probes/ipv6 | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists-botsonly/pingdombot.ips
+      - name: Get Pingdom IP List # Source: https://documentation.solarwinds.com/en/success_center/pingdom/content/topics/pingdom-probe-servers-ip-addresses.htm
+        run: |
+          curl -sL https://my.pingdom.com/probes/ipv4 | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/pingdombot.ips
+          curl -sL https://my.pingdom.com/probes/ipv6 | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists-botsonly/pingdombot.ips
       
       - name: Get Stripe Webhook IP List # Source: https://stripe.com/docs/ips
         run: curl -sL https://stripe.com/files/ips/ips_webhooks.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/stripewebhook.ips
         
- #     - name: Get RSS API IP List # Source: https://rssapi.net/faq
- #       run: curl -sL https://rssapi.net/ips.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/rssapi.ips
+      - name: Get RSS API IP List # Source: https://rssapi.net/faq
+        run: curl -sL https://rssapi.net/ips.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/rssapi.ips
 
- #     - name: Get BetterUptime IP List # Source: https://docs.betteruptime.com/frequently-asked-questions
- #       run: curl -sL https://betteruptime.com/ips.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/betteruptimebot.ips
+      - name: Get BetterUptime IP List # Source: https://docs.betteruptime.com/frequently-asked-questions
+        run: curl -sL https://betteruptime.com/ips.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/betteruptimebot.ips
         
       - name: Generate WebpagetestBot IP-List # Source: https://www.webpagetest.org/addresses.php
         run: curl -sL https://www.webpagetest.org/addresses.php?f=json | jq -r '.data[].addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/webpagetestbot.ips
