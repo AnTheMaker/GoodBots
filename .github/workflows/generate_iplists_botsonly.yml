@@ -31,8 +31,8 @@ jobs:
  #     - name: Generate Fastly IP-List
  #       run: curl -sL https://api.fastly.com/public-ip-list | jq -r '.ipv6_addresses[],.addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/fastly.ips
 
-      - name: Generate AhrefsBot IP-List # Source: https://help.ahrefs.com/en/articles/78658-what-is-the-list-of-your-ip-ranges
-        run: curl -sL https://api.ahrefs.com/v3/public/crawler-ips | jq -r '.ips[].ip_address | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/ahrefsbot.ips
+ #     - name: Generate AhrefsBot IP-List # Source: https://help.ahrefs.com/en/articles/78658-what-is-the-list-of-your-ip-ranges
+ #       run: curl -sL https://api.ahrefs.com/v3/public/crawler-ips | jq -r '.ips[].ip_address | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/ahrefsbot.ips
         
       - name: Generate FacebookBot IP-List # Source: https://developers.facebook.com/docs/sharing/webmasters/crawler/
         run: whois -h whois.radb.net -- '-i origin AS32934' | grep ^route | awk '{gsub("(route:|route6:)","");print}' | awk '{gsub(/ /,""); print}' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/facebookbot.ips
@@ -63,10 +63,10 @@ jobs:
       - name: Generate WebpagetestBot IP-List # Source: https://www.webpagetest.org/addresses.php
         run: curl -sL https://www.webpagetest.org/addresses.php?f=json | jq -r '.data[].addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/webpagetestbot.ips
         
- #     - name: Get BunnyCDN IP List # Source: https://support.bunny.net/hc/en-us/articles/115001131172-I-am-seeing-a-lot-of-502-and-504-errors
- #       run: |
- #         curl -sL https://api.bunny.net/system/edgeserverlist/plain | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/bunnycdn.ips
- #         curl -sL https://api.bunny.net/system/edgeserverlist/ipv6 | jq -r '.[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists-botsonly/bunnycdn.ips
+      - name: Get BunnyCDN IP List # Source: https://support.bunny.net/hc/en-us/articles/115001131172-I-am-seeing-a-lot-of-502-and-504-errors
+        run: |
+          curl -sL https://api.bunny.net/system/edgeserverlist/plain | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/bunnycdn.ips
+          curl -sL https://api.bunny.net/system/edgeserverlist/ipv6 | jq -r '.[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists-botsonly/bunnycdn.ips
           
  #     - name: Get Cloudflare IP List # Source: https://www.cloudflare.com/ips/
  #       run: |
