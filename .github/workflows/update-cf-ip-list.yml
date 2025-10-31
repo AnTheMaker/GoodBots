@@ -157,7 +157,16 @@ jobs:
           IPS_DIR: ${{ github.workspace }}/iplists-botsonly
         run: |
           set -euo pipefail
-          : > /tmp/rejected_ipv6_cidrs.txt
+
+          # Use GitHub's temp dir; fall back to /tmp
+          TMP_DIR="${RUNNER_TEMP:-/tmp}"
+          mkdir -p "$TMP_DIR"
+
+          STREAM="$TMP_DIR/stream.tsv"
+          REJECTS="$TMP_DIR/rejected_ipv6_cidrs.txt"
+          ITEMS="$TMP_DIR/items.json"
+
+          : > "$REJECTS"
 
           echo "🔎 Checking inputs…"
           if [[ -s "$IN_CSV" && $(wc -l < "$IN_CSV") -gt 1 ]]; then
@@ -176,11 +185,8 @@ jobs:
             INPUT_MODE="ips"
           fi
 
-          # Emit a TSV stream: "<value>\t<description>"
-          #  - from CSV (value,description[,extra…]) OR
-          #  - from *.ips files (desc = filename sans .ips)
+          # Build TSV "<value>\t<description>" source stream
           if [[ "$INPUT_MODE" == "csv" ]]; then
-            # Avoid noisy "Broken pipe" if downstream closes early
             tail -n +2 "$IN_CSV" || true \
             | awk -F, '{
                 val=$1; desc=$2; for(i=3;i<=NF;i++) desc=desc","$i;
@@ -188,17 +194,17 @@ jobs:
                 gsub(/^[ \t]+|[ \t]+$/,"",val);
                 gsub(/^[ \t]+|[ \t]+$/,"",desc);
                 if (val!="") print val "\t" desc;
-              }' > /tmp/stream.tsv
+              }' > "$STREAM"
           else
-            : > /tmp/stream.tsv
+            : > "$STREAM"
             for f in "${IPS_FILES[@]}"; do
               name="$(basename "$f" .ips)"
               awk 'NF{gsub(/\r$/,""); print}' "$f" \
-              | awk -v desc="$name" 'NF{print $0 "\t" desc}' >> /tmp/stream.tsv
+              | awk -v desc="$name" 'NF{print $0 "\t" desc}' >> "$STREAM"
             done
           fi
 
-          TOTAL_INPUTS=$(wc -l < /tmp/stream.tsv || echo 0)
+          TOTAL_INPUTS=$(wc -l < "$STREAM" || echo 0)
           echo "📦 Candidates before validation: $TOTAL_INPUTS"
           if [[ "$TOTAL_INPUTS" -eq 0 ]]; then
             echo "❌ No candidate values to process. Aborting."
@@ -210,7 +216,7 @@ jobs:
             # IPv4 (w/optional CIDR)
             def ipv4: "^([0-9]{1,3}\\.){3}[0-9]{1,3}(?:/(?:[0-9]|[12][0-9]|3[0-2]))?$";
 
-            # IPv6 (allow IPv4-mapped, optional CIDR); CIDR range enforced later
+            # IPv6 (allow IPv4-mapped, optional CIDR); validate range later
             def ipv6_loose: "^[0-9A-Fa-f:.]+(?:/[0-9]{1,3})?$";
 
             # Extract IPv6 prefix or null
@@ -277,28 +283,28 @@ jobs:
                 ip: .[0].ip,
                 comment: ( [.[].comment] | map(select(length>0)) | unique | join(", ") )
               })
-          ' 2> >( (grep "^REJECT" || true) | sed "s/^REJECT\t//" >> /tmp/rejected_ipv6_cidrs.txt ) \
-            < /tmp/stream.tsv \
-            > /tmp/items.json
+          ' 2> >( (grep "^REJECT" || true) | sed "s/^REJECT\t//" >> "$REJECTS" ) \
+            < "$STREAM" \
+            > "$ITEMS"
 
-          if [[ ! -s /tmp/items.json ]]; then
+          if [[ ! -s "$ITEMS" ]]; then
             echo "❌ ERROR: No valid items produced after validation. Aborting."
-            echo "👀 First 20 raw lines from /tmp/stream.tsv for debugging:"
-            head -n 20 /tmp/stream.tsv || true
+            echo "👀 First 20 raw lines from $STREAM for debugging:"
+            head -n 20 "$STREAM" || true
             echo "👀 First 20 rejects (if any):"
-            head -n 20 /tmp/rejected_ipv6_cidrs.txt || true
+            head -n 20 "$REJECTS" || true
             exit 1
           fi
 
-          echo "✅ Unique items to upload: $(jq 'length' /tmp/items.json)"
-          if [ -s /tmp/rejected_ipv6_cidrs.txt ]; then
+          echo "✅ Unique items to upload: $(jq 'length' "$ITEMS")"
+          if [ -s "$REJECTS" ]; then
             echo "⚠️ Some entries were rejected. First few:"
-            head -n 10 /tmp/rejected_ipv6_cidrs.txt || true
+            head -n 10 "$REJECTS" || true
           fi
 
-          echo "items_json=/tmp/items.json" >> "$GITHUB_OUTPUT"
+          echo "items_json=$ITEMS" >> "$GITHUB_OUTPUT"
           echo "Preview:"
-          jq '.[0:5]' /tmp/items.json
+          jq '.[0:5]' "$ITEMS"
 
       - name: Upload rejected IPv6 CIDRs as artifact (optional)
         if: always()
