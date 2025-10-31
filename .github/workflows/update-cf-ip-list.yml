@@ -133,6 +133,7 @@ jobs:
             esac
             sleep 60
           done
+          sleep 60
           echo "Timed out waiting for clear operation ${OP_ID}"; exit 1
 
       # 1) Build a single CSV with header: value,description
@@ -228,4 +229,5 @@ jobs:
             tries=$((tries+1))
             sleep 60
           done
+          sleep 60
           echo "Timed out waiting for bulk operation ${OP_ID}"; exit 1
