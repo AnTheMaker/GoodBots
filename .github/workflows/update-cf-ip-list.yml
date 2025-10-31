@@ -1,9 +1,13 @@
 name: Generate IP Lists - Upload to CloudFlare
 
 on:
-  schedule:
-    # Runs once a day at midnight
-    - cron: '0 0 * * *'
+  push:
+    branches:
+     - main
+    paths:
+      - 'all_botsonly.ips'
+      - '!.github/workflows/**'
+      - '!renovate.json'
   workflow_dispatch:
 
 jobs:
@@ -16,57 +20,57 @@ jobs:
           packages: whois
           version: 1.0
 
-      - name: Generate GoogleBot IP-List
-        run: curl -sL https://developers.google.com/static/search/apis/ipranges/googlebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/googlebot.ips
- 
-      - name: Generate BingBot IP-List
-        run: curl -sL https://www.bing.com/toolbox/bingbot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/bingbot.ips
-
-      - name: Generate Common Crwal Bot IP-List
-        run: curl -sL https://index.commoncrawl.org/ccbot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/commoncrawlbot.ips
-
-      - name: Generate AppleBot IP-List
-        run: curl -sL https://search.developer.apple.com/applebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/applebot.ips
-
-      - name: Generate Fastly IP-List
-        run: curl -sL https://api.fastly.com/public-ip-list | jq -r '.ipv6_addresses[],.addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/fastly.ips
+ #     - name: Generate GoogleBot IP-List
+ #       run: curl -sL https://developers.google.com/static/search/apis/ipranges/googlebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/googlebot.ips
+ #
+ #     - name: Generate BingBot IP-List
+ #       run: curl -sL https://www.bing.com/toolbox/bingbot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/bingbot.ips
+ #
+ #     - name: Generate Common Crwal Bot IP-List
+ #       run: curl -sL https://index.commoncrawl.org/ccbot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/commoncrawlbot.ips
+ #
+ #     - name: Generate AppleBot IP-List
+ #       run: curl -sL https://search.developer.apple.com/applebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/applebot.ips
+ #
+ #     - name: Generate Fastly IP-List
+ #       run: curl -sL https://api.fastly.com/public-ip-list | jq -r '.ipv6_addresses[],.addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/fastly.ips
 
  #     - name: Generate AhrefsBot IP-List # Source: https://help.ahrefs.com/en/articles/78658-what-is-the-list-of-your-ip-ranges
  #       run: curl -sL https://api.ahrefs.com/v3/public/crawler-ips | jq -r '.ips[].ip_address | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/ahrefsbot.ips
         
-      - name: Generate FacebookBot IP-List # Source: https://developers.facebook.com/docs/sharing/webmasters/crawler/
-        run: whois -h whois.radb.net -- '-i origin AS32934' | grep ^route | awk '{gsub("(route:|route6:)","");print}' | awk '{gsub(/ /,""); print}' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/facebookbot.ips
+ #     - name: Generate FacebookBot IP-List # Source: https://developers.facebook.com/docs/sharing/webmasters/crawler/
+ #       run: whois -h whois.radb.net -- '-i origin AS32934' | grep ^route | awk '{gsub("(route:|route6:)","");print}' | awk '{gsub(/ /,""); print}' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/facebookbot.ips
      
-      - name: Generate DuckDuckBot IP-List # Source: https://help.duckduckgo.com/duckduckgo-help-pages/results/duckduckbot/
-        run: curl -sL https://raw.githubusercontent.com/duckduckgo/duckduckgo-help-pages/master/_docs/results/duckduckbot.md | grep "^\- " | awk '{gsub("-",""); print}' | awk '{gsub(/ /,""); print}' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/duckduckbot.ips
+ #     - name: Generate DuckDuckBot IP-List # Source: https://help.duckduckgo.com/duckduckgo-help-pages/results/duckduckbot/
+ #       run: curl -sL https://raw.githubusercontent.com/duckduckgo/duckduckgo-help-pages/master/_docs/results/duckduckbot.md | grep "^\- " | awk '{gsub("-",""); print}' | awk '{gsub(/ /,""); print}' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/duckduckbot.ips
       
-      - name: Get Telegram IP List
-        run: curl -sL https://core.telegram.org/resources/cidr.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/telegrambot.ips
+ #     - name: Get Telegram IP List
+ #       run: curl -sL https://core.telegram.org/resources/cidr.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/telegrambot.ips
 
-      - name: Get UptimeRobot IP List # Source: https://uptimerobot.com/help/locations/
-        run: curl -sL https://uptimerobot.com/inc/files/ips/IPv4andIPv6.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/uptimerobot.ips
+ #     - name: Get UptimeRobot IP List # Source: https://uptimerobot.com/help/locations/
+ #       run: curl -sL https://uptimerobot.com/inc/files/ips/IPv4andIPv6.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/uptimerobot.ips
 
-      - name: Get Pingdom IP List # Source: https://documentation.solarwinds.com/en/success_center/pingdom/content/topics/pingdom-probe-servers-ip-addresses.htm
-        run: |
-          curl -sL https://my.pingdom.com/probes/ipv4 | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/pingdombot.ips
-          curl -sL https://my.pingdom.com/probes/ipv6 | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists-botsonly/pingdombot.ips
+ #     - name: Get Pingdom IP List # Source: https://documentation.solarwinds.com/en/success_center/pingdom/content/topics/pingdom-probe-servers-ip-addresses.htm
+ #       run: |
+ #         curl -sL https://my.pingdom.com/probes/ipv4 | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/pingdombot.ips
+ #         curl -sL https://my.pingdom.com/probes/ipv6 | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists-botsonly/pingdombot.ips
       
-      - name: Get Stripe Webhook IP List # Source: https://stripe.com/docs/ips
-        run: curl -sL https://stripe.com/files/ips/ips_webhooks.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/stripewebhook.ips
+ #     - name: Get Stripe Webhook IP List # Source: https://stripe.com/docs/ips
+ #       run: curl -sL https://stripe.com/files/ips/ips_webhooks.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/stripewebhook.ips
         
-      - name: Get RSS API IP List # Source: https://rssapi.net/faq
-        run: curl -sL https://rssapi.net/ips.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/rssapi.ips
+ #     - name: Get RSS API IP List # Source: https://rssapi.net/faq
+ #       run: curl -sL https://rssapi.net/ips.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/rssapi.ips
 
-      - name: Get BetterUptime IP List # Source: https://docs.betteruptime.com/frequently-asked-questions
-        run: curl -sL https://betteruptime.com/ips.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/betteruptimebot.ips
+ #     - name: Get BetterUptime IP List # Source: https://docs.betteruptime.com/frequently-asked-questions
+ #       run: curl -sL https://betteruptime.com/ips.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/betteruptimebot.ips
         
-      - name: Generate WebpagetestBot IP-List # Source: https://www.webpagetest.org/addresses.php
-        run: curl -sL https://www.webpagetest.org/addresses.php?f=json | jq -r '.data[].addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/webpagetestbot.ips
+ #     - name: Generate WebpagetestBot IP-List # Source: https://www.webpagetest.org/addresses.php
+ #       run: curl -sL https://www.webpagetest.org/addresses.php?f=json | jq -r '.data[].addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/webpagetestbot.ips
         
-      - name: Get BunnyCDN IP List # Source: https://support.bunny.net/hc/en-us/articles/115001131172-I-am-seeing-a-lot-of-502-and-504-errors
-        run: |
-          curl -sL https://api.bunny.net/system/edgeserverlist/plain | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/bunnycdn.ips
-          curl -sL https://api.bunny.net/system/edgeserverlist/ipv6 | jq -r '.[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists-botsonly/bunnycdn.ips
+ #     - name: Get BunnyCDN IP List # Source: https://support.bunny.net/hc/en-us/articles/115001131172-I-am-seeing-a-lot-of-502-and-504-errors
+ #       run: |
+ #         curl -sL https://api.bunny.net/system/edgeserverlist/plain | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/bunnycdn.ips
+ #         curl -sL https://api.bunny.net/system/edgeserverlist/ipv6 | jq -r '.[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists-botsonly/bunnycdn.ips
           
  #     - name: Get Cloudflare IP List # Source: https://www.cloudflare.com/ips/
  #       run: |
@@ -79,12 +83,12 @@ jobs:
       - name: Create merged/total IP-List (all.ips) # Use grep to merge files and ensure proper new-lines between every file, but remove any empty new-lines
         run: grep -h -v '^[[:space:]]*$' $GITHUB_WORKSPACE/iplists-botsonly/*.ips | uniq -u | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/all_botsonly.ips
 
-      - name: Commit & push updated IP-Lists into this Repo
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add .
-          git diff-index --quiet HEAD || git commit -m "Daily auto update of the IP-Lists" && git push
+ #     - name: Commit & push updated IP-Lists into this Repo
+ #       run: |
+ #         git config user.name 'github-actions[bot]'
+ #         git config user.email 'github-actions[bot]@users.noreply.github.com'
+ #         git add .
+ #         git diff-index --quiet HEAD || git commit -m "Daily auto update of the IP-Lists" && git push
 
       - name: Ensure jq is available
         run: sudo apt-get update && sudo apt-get install -y jq
