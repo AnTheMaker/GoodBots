@@ -5,7 +5,7 @@ on:
     branches:
      - main
     paths:
-      - 'all_botsonly.ips'
+      - './all_botsonly.ips'
       - '!.github/workflows/**'
       - '!renovate.json'
   workflow_dispatch:
