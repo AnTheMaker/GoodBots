@@ -80,8 +80,8 @@ jobs:
  #         cat $GITHUB_WORKSPACE/iplists-botsonly/cloudflare.ips | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/cloudflare.ips.tmp
  #         mv $GITHUB_WORKSPACE/iplists-botsonly/cloudflare.ips.tmp $GITHUB_WORKSPACE/iplists-botsonly/cloudflare.ips
 
-      - name: Create merged/total IP-List (all.ips) # Use grep to merge files and ensure proper new-lines between every file, but remove any empty new-lines
-        run: grep -h -v '^[[:space:]]*$' $GITHUB_WORKSPACE/iplists-botsonly/*.ips | uniq -u | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/all_botsonly.ips
+ #     - name: Create merged/total IP-List (all.ips) # Use grep to merge files and ensure proper new-lines between every file, but remove any empty new-lines
+ #       run: grep -h -v '^[[:space:]]*$' $GITHUB_WORKSPACE/iplists-botsonly/*.ips | uniq -u | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/all_botsonly.ips
 
  #     - name: Commit & push updated IP-Lists into this Repo
  #       run: |
