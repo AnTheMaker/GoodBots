@@ -149,109 +149,150 @@ jobs:
           done
           echo "CSV built: $OUT_CSV"
 
-      - name: Convert CSV to JSON (IPv4+IPv6, add /32 & /128, validate, dedupe, merge comments)
+      - name: Convert CSV to JSON (robust; IPv4+IPv6, add /32 & /128, validate, dedupe, merge comments)
         id: make_json
         shell: bash
         env:
           IN_CSV: ${{ github.workspace }}/cloudflare_items.csv
+          IPS_DIR: ${{ github.workspace }}/iplists-botsonly
         run: |
           set -euo pipefail
           : > /tmp/rejected_ipv6_cidrs.txt
 
-          # Avoid Broken Pipe noise if jq closes early
-          tail -n +2 "$IN_CSV" || true \
-          | awk -F, '{
-              val=$1; desc=$2; for(i=3;i<=NF;i++) desc=desc","$i;
-              gsub(/\r$/,"",desc);
-              gsub(/^[ \t]+|[ \t]+$/,"",val);
-              gsub(/^[ \t]+|[ \t]+$/,"",desc);
-              if (val!="") print val "\t" desc;
-            }' \
-          | jq -R '
-              # IPv4 (w/optional CIDR)
-              def ipv4: "^([0-9]{1,3}\\.){3}[0-9]{1,3}(?:/(?:[0-9]|[12][0-9]|3[0-2]))?$";
+          echo "🔎 Checking inputs…"
+          if [[ -s "$IN_CSV" && $(wc -l < "$IN_CSV") -gt 1 ]]; then
+            echo "✅ Using CSV: $IN_CSV (lines: $(wc -l < "$IN_CSV"))"
+            INPUT_MODE="csv"
+          else
+            echo "⚠️ CSV missing or empty; falling back to .ips files under: $IPS_DIR"
+            shopt -s nullglob
+            IPS_FILES=( "$IPS_DIR"/*.ips )
+            if (( ${#IPS_FILES[@]} == 0 )); then
+              echo "❌ No .ips files found in $IPS_DIR and CSV is empty. Aborting."
+              exit 1
+            fi
+            echo "Found ${#IPS_FILES[@]} .ips files:"
+            printf ' - %s\n' "${IPS_FILES[@]##*/}"
+            INPUT_MODE="ips"
+          fi
 
-              # IPv6 (allow IPv4-mapped, optional CIDR)
-              def ipv6_loose: "^[0-9A-Fa-f:.]+(?:/[0-9]{1,3})?$";
+          # Emit a TSV stream: "<value>\t<description>"
+          #  - from CSV (value,description[,extra…]) OR
+          #  - from *.ips files (desc = filename sans .ips)
+          if [[ "$INPUT_MODE" == "csv" ]]; then
+            # Avoid noisy "Broken pipe" if downstream closes early
+            tail -n +2 "$IN_CSV" || true \
+            | awk -F, '{
+                val=$1; desc=$2; for(i=3;i<=NF;i++) desc=desc","$i;
+                gsub(/\r$/,"",desc);
+                gsub(/^[ \t]+|[ \t]+$/,"",val);
+                gsub(/^[ \t]+|[ \t]+$/,"",desc);
+                if (val!="") print val "\t" desc;
+              }' > /tmp/stream.tsv
+          else
+            : > /tmp/stream.tsv
+            for f in "${IPS_FILES[@]}"; do
+              name="$(basename "$f" .ips)"
+              awk 'NF{gsub(/\r$/,""); print}' "$f" \
+              | awk -v desc="$name" 'NF{print $0 "\t" desc}' >> /tmp/stream.tsv
+            done
+          fi
 
-              # Extract prefix length or null
-              def v6_prefix:
-                if test(".*/") then ( capture(".*/(?<p>[0-9]+)$").p | tonumber )
-                else null end;
+          TOTAL_INPUTS=$(wc -l < /tmp/stream.tsv || echo 0)
+          echo "📦 Candidates before validation: $TOTAL_INPUTS"
+          if [[ "$TOTAL_INPUTS" -eq 0 ]]; then
+            echo "❌ No candidate values to process. Aborting."
+            exit 1
+          fi
 
-              # Reject IPv6 zone index forms
-              def has_zone: test("%");
+          # Convert TSV → JSON items with normalization, validation, and dedupe
+          jq -R '
+            # IPv4 (w/optional CIDR)
+            def ipv4: "^([0-9]{1,3}\\.){3}[0-9]{1,3}(?:/(?:[0-9]|[12][0-9]|3[0-2]))?$";
 
-              # Normalize & classify
-              def classify($desc):
-                if has_zone then
-                  {ip:., comment:$desc, ok:false, why:"ipv6_zone_index_not_allowed"}
+            # IPv6 (allow IPv4-mapped, optional CIDR); CIDR range enforced later
+            def ipv6_loose: "^[0-9A-Fa-f:.]+(?:/[0-9]{1,3})?$";
 
-                elif test(ipv4) then
-                  # Bare IPv4 -> add /32
-                  if contains("/") then
-                    {ip:., comment:$desc, ok:true}
-                  else
-                    {ip:(. + "/32"), comment:$desc, ok:true}
-                  end
+            # Extract IPv6 prefix or null
+            def v6_prefix:
+              if test(".*/") then ( capture(".*/(?<p>[0-9]+)$").p | tonumber ) else null end;
 
-                elif test(ipv6_loose) then
-                  ( . as $ip
-                  | ( $ip | ascii_downcase ) as $low
-                  | ($low | v6_prefix) as $p
-                  | if $p == null then
-                      # Bare IPv6 -> add /128
-                      {ip:($low + "/128"), comment:$desc, ok:true}
-                    elif ($p >= 12 and $p <= 128) then
-                      {ip:$low, comment:$desc, ok:true}
-                    else
-                      {ip:$low, comment:$desc, ok:false, why:("ipv6_cidr_prefix_"+($p|tostring)+"_lt12")}
-                    end )
+            # Reject zone index (fe80::1%eth0)
+            def has_zone: test("%");
 
+            # Classify & normalize (desc passed in)
+            def classify($desc):
+              if has_zone then
+                {ip:., comment:$desc, ok:false, why:"ipv6_zone_index_not_allowed"}
+
+              elif test(ipv4) then
+                if contains("/") then
+                  {ip:., comment:$desc, ok:true}
                 else
-                  {ip:., comment:$desc, ok:false, why:"not_ipv4_or_ipv6"}
-                end;
+                  {ip:(. + "/32"), comment:$desc, ok:true}   # bare IPv4 -> /32
+                end
 
-              # Parse TSV → objects
-              [ inputs
-                | select(length>0)
-                | ( . / "\t" ) as $parts
-                | ($parts[0] | gsub("\\s+"; "")) as $v
-                | ($parts[1]) as $desc
-                | ($v | classify($desc))
-              ] as $objs
+              elif test(ipv6_loose) then
+                ( . as $ip
+                | ( $ip | ascii_downcase ) as $low
+                | ($low | v6_prefix) as $p
+                | if $p == null then
+                    {ip:($low + "/128"), comment:$desc, ok:true}  # bare IPv6 -> /128
+                  elif ($p >= 12 and $p <= 128) then
+                    {ip:$low, comment:$desc, ok:true}             # IPv6 CIDR within policy
+                  else
+                    {ip:$low, comment:$desc, ok:false, why:("ipv6_cidr_prefix_"+($p|tostring)+"_lt12")}
+                  end )
 
-              # Rejects to stderr
-              | ( $objs
-                  | map(select(.ok == false))
-                  | map("REJECT\t" + .ip + "\t" + (.why // ""))
-                  | .[]?
-                ) as $rej
-              | if ($rej|length) > 0 then
-                  ( $rej | @text ) | . as $noop
-                else empty end
+              else
+                {ip:., comment:$desc, ok:false, why:"not_ipv4_or_ipv6"}
+              end;
 
-              # Keep valid; dedupe; merge comments
-              | $objs
-              | map(select(.ok))
-              | sort_by(.ip)
-              | group_by(.ip)
-              | map({
-                  ip: .[0].ip,
-                  comment: ( [.[].comment] | map(select(length>0)) | unique | join(", ") )
-                })
-            ' 2> >( (grep "^REJECT" || true) | sed "s/^REJECT\t//" >> /tmp/rejected_ipv6_cidrs.txt ) \
+            # Parse TSV "value<TAB>desc" → objects
+            [ inputs
+              | select(length>0)
+              | ( . / "\t" ) as $parts
+              | ($parts[0] // "") as $v
+              | ($parts[1] // "") as $desc
+              | ($v | gsub("\\s+"; "")) as $v2
+              | ($v2 | classify($desc))
+            ] as $objs
+
+            # Log rejects to stderr as "REJECT\t<ip>\t<why>"
+            | ( $objs
+                | map(select(.ok == false))
+                | map("REJECT\t" + .ip + "\t" + (.why // ""))
+                | .[]?
+              ) as $rej
+            | if ($rej|length) > 0 then
+                ( $rej | @text ) | . as $noop
+              else empty end
+
+            # Keep valid; dedupe; merge comments
+            | $objs
+            | map(select(.ok))
+            | sort_by(.ip)
+            | group_by(.ip)
+            | map({
+                ip: .[0].ip,
+                comment: ( [.[].comment] | map(select(length>0)) | unique | join(", ") )
+              })
+          ' 2> >( (grep "^REJECT" || true) | sed "s/^REJECT\t//" >> /tmp/rejected_ipv6_cidrs.txt ) \
+            < /tmp/stream.tsv \
             > /tmp/items.json
 
-          # Ensure file exists and has valid items
-          if [ ! -s /tmp/items.json ]; then
-            echo "❌ ERROR: No valid items produced. Aborting."
+          if [[ ! -s /tmp/items.json ]]; then
+            echo "❌ ERROR: No valid items produced after validation. Aborting."
+            echo "👀 First 20 raw lines from /tmp/stream.tsv for debugging:"
+            head -n 20 /tmp/stream.tsv || true
+            echo "👀 First 20 rejects (if any):"
+            head -n 20 /tmp/rejected_ipv6_cidrs.txt || true
             exit 1
           fi
 
           echo "✅ Unique items to upload: $(jq 'length' /tmp/items.json)"
           if [ -s /tmp/rejected_ipv6_cidrs.txt ]; then
-            echo "⚠️ Some were rejected. First few:"
+            echo "⚠️ Some entries were rejected. First few:"
             head -n 10 /tmp/rejected_ipv6_cidrs.txt || true
           fi
 
