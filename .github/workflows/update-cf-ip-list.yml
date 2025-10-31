@@ -149,132 +149,139 @@ jobs:
           done
           echo "CSV built: $OUT_CSV"
 
-      - name: Convert CSV to JSON (robust; IPv4+IPv6, add /32 & /128, validate, dedupe, merge comments)
+      - name: Convert CSV to JSON (robust; v4+v6, /32 & /128, validate, dedupe, merge comments)
         id: make_json
         shell: bash
         env:
-          IN_CSV: ${{ github.workspace }}/cloudflare_items.csv
-          IPS_DIR: ${{ github.workspace }}/iplists-botsonly
+            IN_CSV: ${{ github.workspace }}/cloudflare_items.csv
+            IPS_DIR: ${{ github.workspace }}/iplists-botsonly
         run: |
-          set -euo pipefail
+            set -euo pipefail
 
-          # Use GitHub's temp dir; fall back to /tmp
-          TMP_DIR="${RUNNER_TEMP:-/tmp}"
-          mkdir -p "$TMP_DIR"
+            # ---- paths
+            TMP_DIR="${RUNNER_TEMP:-/tmp}"
+            mkdir -p "$TMP_DIR"
+            STREAM="$TMP_DIR/stream.tsv"
+            REJECTS="$TMP_DIR/rejected_ipv6_cidrs.txt"
+            ITEMS="$TMP_DIR/items.json"
+            : > "$STREAM"
+            : > "$REJECTS"
 
-          STREAM="$TMP_DIR/stream.tsv"
-          REJECTS="$TMP_DIR/rejected_ipv6_cidrs.txt"
-          ITEMS="$TMP_DIR/items.json"
+            echo "🔎 Input discovery…"
+            echo "workspace=${GITHUB_WORKSPACE}"
+            echo "CSV path: $IN_CSV"
+            echo "IPS_DIR:  $IPS_DIR"
 
-          : > "$REJECTS"
+            echo "📁 Listing $IPS_DIR (if exists):"
+            ls -lah "$IPS_DIR" || echo "(no directory)"
 
-          echo "🔎 Checking inputs…"
-          if [[ -s "$IN_CSV" && $(wc -l < "$IN_CSV") -gt 1 ]]; then
-            echo "✅ Using CSV: $IN_CSV (lines: $(wc -l < "$IN_CSV"))"
-            INPUT_MODE="csv"
-          else
-            echo "⚠️ CSV missing or empty; falling back to .ips files under: $IPS_DIR"
+            # ---- 1) Add rows from CSV if present (value,description[,...])
+            if [[ -f "$IN_CSV" ]]; then
+            echo "➡️  Found CSV: $IN_CSV (lines: $(wc -l < "$IN_CSV" || echo 0))"
+            if [[ $(wc -l < "$IN_CSV" || echo 0) -gt 1 ]]; then
+                tail -n +2 "$IN_CSV" || true \
+                | awk -F, '
+                    # emit "<value>\t<description>"
+                    {
+                    val=$1; desc=$2;
+                    for(i=3;i<=NF;i++) desc=desc","$i;
+                    gsub(/\r$/,"",desc);
+                    gsub(/^[ \t]+|[ \t]+$/,"",val);
+                    gsub(/^[ \t]+|[ \t]+$/,"",desc);
+                    if (val!="") print val "\t" desc;
+                    }' >> "$STREAM"
+            fi
+            else
+            echo "ℹ️ CSV not found."
+            fi
+
+            # ---- 2) Add rows from *.ips files (desc = filename)
+            if [[ -d "$IPS_DIR" ]]; then
             shopt -s nullglob
             IPS_FILES=( "$IPS_DIR"/*.ips )
-            if (( ${#IPS_FILES[@]} == 0 )); then
-              echo "❌ No .ips files found in $IPS_DIR and CSV is empty. Aborting."
-              exit 1
-            fi
-            echo "Found ${#IPS_FILES[@]} .ips files:"
-            printf ' - %s\n' "${IPS_FILES[@]##*/}"
-            INPUT_MODE="ips"
-          fi
-
-          # Build TSV "<value>\t<description>" source stream
-          if [[ "$INPUT_MODE" == "csv" ]]; then
-            tail -n +2 "$IN_CSV" || true \
-            | awk -F, '{
-                val=$1; desc=$2; for(i=3;i<=NF;i++) desc=desc","$i;
-                gsub(/\r$/,"",desc);
-                gsub(/^[ \t]+|[ \t]+$/,"",val);
-                gsub(/^[ \t]+|[ \t]+$/,"",desc);
-                if (val!="") print val "\t" desc;
-              }' > "$STREAM"
-          else
-            : > "$STREAM"
+            echo "➡️  Found ${#IPS_FILES[@]} .ips files"
             for f in "${IPS_FILES[@]}"; do
-              name="$(basename "$f" .ips)"
-              awk 'NF{gsub(/\r$/,""); print}' "$f" \
-              | awk -v desc="$name" 'NF{print $0 "\t" desc}' >> "$STREAM"
+                name="$(basename "$f" .ips)"
+                count=$(wc -l < "$f" || echo 0)
+                echo "   - $name.ips ($count lines)"
+                # strip CR, trim, drop blanks, drop trailing comments after space-# or start-#
+                awk '
+                { gsub(/\r$/,""); line=$0 }
+                # remove leading/trailing whitespace
+                { sub(/^[ \t]+/, "", line); sub(/[ \t]+$/, "", line) }
+                # strip comments starting with # (allow CIDRs with # not expected, so safe)
+                { sub(/[ \t]+#.*$/, "", line); if (line ~ /^#/) line="" }
+                # emit
+                length(line)>0 { print line }
+                ' "$f" \
+                | awk -v desc="$name" 'NF{print $0 "\t" desc}' >> "$STREAM"
             done
-          fi
+            else
+            echo "ℹ️ IPS_DIR does not exist."
+            fi
 
-          TOTAL_INPUTS=$(wc -l < "$STREAM" || echo 0)
-          echo "📦 Candidates before validation: $TOTAL_INPUTS"
-          if [[ "$TOTAL_INPUTS" -eq 0 ]]; then
-            echo "❌ No candidate values to process. Aborting."
+            echo "📦 Candidates before validation: $(wc -l < "$STREAM" || echo 0)"
+            if [[ ! -s "$STREAM" ]]; then
+            echo "❌ No candidate values to process."
+            echo "🧪 Debug: show top of CSV (if any):"
+            head -n 20 "$IN_CSV" || true
             exit 1
-          fi
+            fi
 
-          # Convert TSV → JSON items with normalization, validation, and dedupe
-          jq -R '
-            # IPv4 (w/optional CIDR)
+            # ---- 3) TSV -> JSON items (normalize, validate, dedupe)
+            jq -R '
+            # IPv4 (optional CIDR)
             def ipv4: "^([0-9]{1,3}\\.){3}[0-9]{1,3}(?:/(?:[0-9]|[12][0-9]|3[0-2]))?$";
-
-            # IPv6 (allow IPv4-mapped, optional CIDR); validate range later
+            # IPv6 (allow IPv4-mapped), optional CIDR; enforce v6 range later
             def ipv6_loose: "^[0-9A-Fa-f:.]+(?:/[0-9]{1,3})?$";
-
-            # Extract IPv6 prefix or null
+            # IPv6 prefix or null
             def v6_prefix:
-              if test(".*/") then ( capture(".*/(?<p>[0-9]+)$").p | tonumber ) else null end;
-
-            # Reject zone index (fe80::1%eth0)
+                if test(".*/") then ( capture(".*/(?<p>[0-9]+)$").p | tonumber ) else null end;
+            # reject zone index
             def has_zone: test("%");
 
-            # Classify & normalize (desc passed in)
             def classify($desc):
-              if has_zone then
+                if has_zone then
                 {ip:., comment:$desc, ok:false, why:"ipv6_zone_index_not_allowed"}
-
-              elif test(ipv4) then
-                if contains("/") then
-                  {ip:., comment:$desc, ok:true}
-                else
-                  {ip:(. + "/32"), comment:$desc, ok:true}   # bare IPv4 -> /32
+                elif test(ipv4) then
+                if contains("/") then {ip:., comment:$desc, ok:true}
+                else {ip:(. + "/32"), comment:$desc, ok:true}  # bare IPv4 -> /32
                 end
-
-              elif test(ipv6_loose) then
+                elif test(ipv6_loose) then
                 ( . as $ip
-                | ( $ip | ascii_downcase ) as $low
-                | ($low | v6_prefix) as $p
-                | if $p == null then
-                    {ip:($low + "/128"), comment:$desc, ok:true}  # bare IPv6 -> /128
-                  elif ($p >= 12 and $p <= 128) then
-                    {ip:$low, comment:$desc, ok:true}             # IPv6 CIDR within policy
-                  else
-                    {ip:$low, comment:$desc, ok:false, why:("ipv6_cidr_prefix_"+($p|tostring)+"_lt12")}
-                  end )
-
-              else
+                    | ( $ip | ascii_downcase ) as $low
+                    | ($low | v6_prefix) as $p
+                    | if $p == null then
+                        {ip:($low + "/128"), comment:$desc, ok:true}  # bare IPv6 -> /128
+                    elif ($p >= 12 and $p <= 128) then
+                        {ip:$low, comment:$desc, ok:true}
+                    else
+                        {ip:$low, comment:$desc, ok:false, why:("ipv6_cidr_prefix_"+($p|tostring)+"_lt12")}
+                    end )
+                else
                 {ip:., comment:$desc, ok:false, why:"not_ipv4_or_ipv6"}
-              end;
+                end;
 
-            # Parse TSV "value<TAB>desc" → objects
             [ inputs
-              | select(length>0)
-              | ( . / "\t" ) as $parts
-              | ($parts[0] // "") as $v
-              | ($parts[1] // "") as $desc
-              | ($v | gsub("\\s+"; "")) as $v2
-              | ($v2 | classify($desc))
+                | select(length>0)
+                | ( . / "\t" ) as $p
+                | ($p[0] // "") as $v
+                | ($p[1] // "") as $desc
+                | ($v | gsub("\\s+"; "")) as $v2
+                | ($v2 | classify($desc))
             ] as $objs
 
-            # Log rejects to stderr as "REJECT\t<ip>\t<why>"
+            # log rejects to stderr
             | ( $objs
                 | map(select(.ok == false))
                 | map("REJECT\t" + .ip + "\t" + (.why // ""))
                 | .[]?
-              ) as $rej
+                ) as $rej
             | if ($rej|length) > 0 then
                 ( $rej | @text ) | . as $noop
-              else empty end
+                else empty end
 
-            # Keep valid; dedupe; merge comments
+            # keep valid, dedupe by ip, merge comments
             | $objs
             | map(select(.ok))
             | sort_by(.ip)
@@ -282,29 +289,29 @@ jobs:
             | map({
                 ip: .[0].ip,
                 comment: ( [.[].comment] | map(select(length>0)) | unique | join(", ") )
-              })
-          ' 2> >( (grep "^REJECT" || true) | sed "s/^REJECT\t//" >> "$REJECTS" ) \
+                })
+            ' 2> >( (grep "^REJECT" || true) | sed "s/^REJECT\t//" >> "$REJECTS" ) \
             < "$STREAM" \
             > "$ITEMS"
 
-          if [[ ! -s "$ITEMS" ]]; then
-            echo "❌ ERROR: No valid items produced after validation. Aborting."
-            echo "👀 First 20 raw lines from $STREAM for debugging:"
+            if [[ ! -s "$ITEMS" ]]; then
+            echo "❌ ERROR: No valid items produced after validation."
+            echo "👀 First 20 raw lines from $STREAM:"
             head -n 20 "$STREAM" || true
             echo "👀 First 20 rejects (if any):"
             head -n 20 "$REJECTS" || true
             exit 1
-          fi
+            fi
 
-          echo "✅ Unique items to upload: $(jq 'length' "$ITEMS")"
-          if [ -s "$REJECTS" ]; then
+            echo "✅ Unique items to upload: $(jq 'length' "$ITEMS")"
+            if [[ -s "$REJECTS" ]]; then
             echo "⚠️ Some entries were rejected. First few:"
             head -n 10 "$REJECTS" || true
-          fi
+            fi
 
-          echo "items_json=$ITEMS" >> "$GITHUB_OUTPUT"
-          echo "Preview:"
-          jq '.[0:5]' "$ITEMS"
+            echo "items_json=$ITEMS" >> "$GITHUB_OUTPUT"
+            echo "Preview:"
+            jq '.[0:5]' "$ITEMS"
 
       - name: Upload rejected IPv6 CIDRs as artifact (optional)
         if: always()
