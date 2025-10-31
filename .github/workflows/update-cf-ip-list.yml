@@ -89,7 +89,7 @@ jobs:
       - name: Ensure jq is available
         run: sudo apt-get update && sudo apt-get install -y jq
 
-      # CLEAR the list completely by replacing its items with an empty array
+      # --- (1) CLEAR the list completely ---
       - name: Clear Cloudflare list (set to empty)
         id: cf_clear
         shell: bash
@@ -100,7 +100,6 @@ jobs:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           set -euo pipefail
-          echo "Clearing list…"
           RESP=$(curl -sS -X PUT \
             -H "Authorization: Bearer ${CF_TOKEN}" \
             -H "Content-Type: application/json" \
@@ -108,9 +107,7 @@ jobs:
             "${CF_API}/accounts/${CF_ACCOUNT_ID}/rules/lists/${CF_LIST_ID}/items")
           echo "$RESP" | jq .
           OP_ID=$(echo "$RESP" | jq -r '.result.operation_id // empty')
-          if [ -z "$OP_ID" ]; then
-            echo "Failed to get operation_id while clearing"; exit 1
-          fi
+          [ -n "$OP_ID" ] || { echo "No operation_id from clear"; exit 1; }
           echo "operation_id=${OP_ID}" >> "$GITHUB_OUTPUT"
 
       - name: Wait for Cloudflare clear op
@@ -131,13 +128,11 @@ jobs:
               completed) exit 0 ;;
               failed) echo "$r" | jq .; exit 1 ;;
             esac
-            sleep 60
+            sleep 5
           done
-          sleep 60
           echo "Timed out waiting for clear operation ${OP_ID}"; exit 1
 
-      # 1) Build a single CSV with header: value,description
-      #    Each row: <IP-or-CIDR>,<list name derived from filename>
+      # --- (2) Build CSV and DEDUPE across all files (merge comments) ---
       - name: Build consolidated CSV with list names
         shell: bash
         env:
@@ -145,41 +140,53 @@ jobs:
         run: |
           set -euo pipefail
           echo "value,description" > "$OUT_CSV"
-
           shopt -s nullglob
           for f in "$GITHUB_WORKSPACE"/iplists-botsonly/*.ips; do
-            name="$(basename "$f" .ips)"   # ex: googlebot, bingbot
-            # one IP/CIDR per line → CSV rows: value,description
-            awk -v desc="$name" 'NF{print $0","desc}' "$f" >> "$OUT_CSV"
+            name="$(basename "$f" .ips)"
+            # each line → value,description
+            awk 'NF{gsub(/\r$/,""); print}' "$f" \
+              | awk -v desc="$name" 'NF{print $0","desc}' >> "$OUT_CSV"
           done
+          echo "CSV built: $OUT_CSV"
 
-          echo "Built CSV at: $OUT_CSV"
-          head -n 5 "$OUT_CSV" || true
-          echo "Total rows: $(($(wc -l < "$OUT_CSV")-1))"
-
-      # 2) Convert CSV → JSON array for Cloudflare API
-      #    Produces: [{ "ip":"1.2.3.0/24", "comment":"googlebot" }, ...]
-      - name: Convert CSV to Cloudflare JSON payload
+      - name: Convert CSV to JSON (dedupe by IP, merge comments)
         id: make_json
         shell: bash
         env:
           IN_CSV: ${{ github.workspace }}/cloudflare_items.csv
         run: |
           set -euo pipefail
-          # skip header; build JSON items
+          # skip header; build unique items with merged comments
           tail -n +2 "$IN_CSV" \
-          | awk -F, 'NF>=1{val=$1; desc=$2; for(i=3;i<=NF;i++) desc=desc","$i; gsub(/\r$/,"",desc); print val"\t"desc}' \
+          | awk -F, '{
+              val=$1; desc=$2; for(i=3;i<=NF;i++) desc=desc","$i;
+              gsub(/\r$/,"",desc);
+              gsub(/^[ \t]+|[ \t]+$/,"",val);
+              gsub(/^[ \t]+|[ \t]+$/,"",desc);
+              if (val!="") print val "\t" desc;
+            }' \
           | jq -R -s '
-              split("\n") 
+              split("\n")
               | map(select(length>0))
               | map( split("\t") | {ip: .[0], comment: (.[1] // "")} )
+              # OPTIONAL: keep IPv4(+CIDR) only; comment this line out if you want IPv6 too
+              | map(select(.ip | test("^([0-9]{1,3}\\.){3}[0-9]{1,3}(/([0-9]|[12][0-9]|3[0-2]))?$")))
+              | map({ip: (.ip|gsub("\\s+"; "")), comment})
+              | sort_by(.ip)
+              | group_by(.ip)
+              | map({
+                  ip: .[0].ip,
+                  comment: ( [.[].comment] | map(select(length>0)) | unique | join(", ") )
+                })
             ' > /tmp/items.json
 
+          LEN=$(jq 'length' /tmp/items.json)
+          echo "Unique items to upload: $LEN"
+          [ "$LEN" -gt 0 ] || { echo "No items after dedupe"; exit 1; }
           echo "items_json=/tmp/items.json" >> "$GITHUB_OUTPUT"
-          echo "Preview:"
-          jq '.[0:5]' /tmp/items.json
+          echo "Preview:"; jq '.[0:5]' /tmp/items.json
 
-      # 3) Replace items in the Cloudflare list and wait for completion
+      # --- (3) Upload unique items and wait for completion ---
       - name: Update Cloudflare list (replace all items)
         id: cf_put
         shell: bash
@@ -191,19 +198,14 @@ jobs:
           ITEMS_JSON: ${{ steps.make_json.outputs.items_json }}
         run: |
           set -euo pipefail
-
-          echo "Submitting bulk replace to Cloudflare…"
           RESP=$(curl -sS -X PUT \
             -H "Authorization: Bearer ${CF_TOKEN}" \
             -H "Content-Type: application/json" \
             --data @"${ITEMS_JSON}" \
             "${CF_API}/accounts/${CF_ACCOUNT_ID}/rules/lists/${CF_LIST_ID}/items")
-
           echo "$RESP" | jq .
           OP_ID=$(echo "$RESP" | jq -r '.result.operation_id // empty')
-          if [ -z "$OP_ID" ]; then
-            echo "No operation_id returned"; exit 1
-          fi
+          [ -n "$OP_ID" ] || { echo "No operation_id returned"; echo "$RESP" | jq '.errors'; exit 1; }
           echo "operation_id=${OP_ID}" >> "$GITHUB_OUTPUT"
 
       - name: Wait for Cloudflare bulk operation
@@ -215,10 +217,8 @@ jobs:
           OP_ID: ${{ steps.cf_put.outputs.operation_id }}
         run: |
           set -euo pipefail
-          tries=0
-          until [ $tries -ge 60 ]; do
-            r=$(curl -sS \
-              -H "Authorization: Bearer ${CF_TOKEN}" \
+          for i in $(seq 1 60); do
+            r=$(curl -sS -H "Authorization: Bearer ${CF_TOKEN}" \
               "${CF_API}/accounts/${CF_ACCOUNT_ID}/rules/lists/bulk_operations/${OP_ID}")
             status=$(echo "$r" | jq -r '.result.status // .status // "unknown"')
             echo "Bulk op status: $status"
@@ -226,8 +226,6 @@ jobs:
               completed) exit 0 ;;
               failed) echo "$r" | jq .; exit 1 ;;
             esac
-            tries=$((tries+1))
-            sleep 60
+            sleep 5
           done
-          sleep 60
           echo "Timed out waiting for bulk operation ${OP_ID}"; exit 1
