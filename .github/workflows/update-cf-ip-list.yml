@@ -1,97 +1,184 @@
-name: Update Cloudflare IP List
+name: Generate IP Lists - Upload to CloudFlare
 
 on:
-  workflow_dispatch:
-  push:
-    paths:
-      - "all_botsonly.ips"
   schedule:
-    - cron: "0 1 * * *"  # optional daily refresh at 01:00 UTC
+    # Runs once a day at midnight
+    - cron: '0 0 * * *'
+  workflow_dispatch:
 
 jobs:
-  update-list:
+  generate:
     runs-on: ubuntu-latest
-    env:
-      CF_API: https://api.cloudflare.com/client/v4
-      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-      CF_LIST_ID: ${{ secrets.CF_LIST_ID }}
-      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: whois
+          version: 1.0
 
-      - name: Validate and build JSON payload
+      - name: Generate GoogleBot IP-List
+        run: curl -sL https://developers.google.com/static/search/apis/ipranges/googlebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/googlebot.ips
+ 
+      - name: Generate BingBot IP-List
+        run: curl -sL https://www.bing.com/toolbox/bingbot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/bingbot.ips
+
+      - name: Generate Common Crwal Bot IP-List
+        run: curl -sL https://index.commoncrawl.org/ccbot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/commoncrawlbot.ips
+
+      - name: Generate AppleBot IP-List
+        run: curl -sL https://search.developer.apple.com/applebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/applebot.ips
+
+      - name: Generate Fastly IP-List
+        run: curl -sL https://api.fastly.com/public-ip-list | jq -r '.ipv6_addresses[],.addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/fastly.ips
+
+ #     - name: Generate AhrefsBot IP-List # Source: https://help.ahrefs.com/en/articles/78658-what-is-the-list-of-your-ip-ranges
+ #       run: curl -sL https://api.ahrefs.com/v3/public/crawler-ips | jq -r '.ips[].ip_address | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/ahrefsbot.ips
+        
+      - name: Generate FacebookBot IP-List # Source: https://developers.facebook.com/docs/sharing/webmasters/crawler/
+        run: whois -h whois.radb.net -- '-i origin AS32934' | grep ^route | awk '{gsub("(route:|route6:)","");print}' | awk '{gsub(/ /,""); print}' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/facebookbot.ips
+     
+      - name: Generate DuckDuckBot IP-List # Source: https://help.duckduckgo.com/duckduckgo-help-pages/results/duckduckbot/
+        run: curl -sL https://raw.githubusercontent.com/duckduckgo/duckduckgo-help-pages/master/_docs/results/duckduckbot.md | grep "^\- " | awk '{gsub("-",""); print}' | awk '{gsub(/ /,""); print}' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/duckduckbot.ips
+      
+      - name: Get Telegram IP List
+        run: curl -sL https://core.telegram.org/resources/cidr.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/telegrambot.ips
+
+      - name: Get UptimeRobot IP List # Source: https://uptimerobot.com/help/locations/
+        run: curl -sL https://uptimerobot.com/inc/files/ips/IPv4andIPv6.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/uptimerobot.ips
+
+      - name: Get Pingdom IP List # Source: https://documentation.solarwinds.com/en/success_center/pingdom/content/topics/pingdom-probe-servers-ip-addresses.htm
+        run: |
+          curl -sL https://my.pingdom.com/probes/ipv4 | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/pingdombot.ips
+          curl -sL https://my.pingdom.com/probes/ipv6 | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists-botsonly/pingdombot.ips
+      
+      - name: Get Stripe Webhook IP List # Source: https://stripe.com/docs/ips
+        run: curl -sL https://stripe.com/files/ips/ips_webhooks.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/stripewebhook.ips
+        
+      - name: Get RSS API IP List # Source: https://rssapi.net/faq
+        run: curl -sL https://rssapi.net/ips.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/rssapi.ips
+
+      - name: Get BetterUptime IP List # Source: https://docs.betteruptime.com/frequently-asked-questions
+        run: curl -sL https://betteruptime.com/ips.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/betteruptimebot.ips
+        
+      - name: Generate WebpagetestBot IP-List # Source: https://www.webpagetest.org/addresses.php
+        run: curl -sL https://www.webpagetest.org/addresses.php?f=json | jq -r '.data[].addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/webpagetestbot.ips
+        
+      - name: Get BunnyCDN IP List # Source: https://support.bunny.net/hc/en-us/articles/115001131172-I-am-seeing-a-lot-of-502-and-504-errors
+        run: |
+          curl -sL https://api.bunny.net/system/edgeserverlist/plain | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/bunnycdn.ips
+          curl -sL https://api.bunny.net/system/edgeserverlist/ipv6 | jq -r '.[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists-botsonly/bunnycdn.ips
+          
+ #     - name: Get Cloudflare IP List # Source: https://www.cloudflare.com/ips/
+ #       run: |
+ #         curl -sL https://www.cloudflare.com/ips-v4 | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/cloudflare.ips
+ #         echo "" >> $GITHUB_WORKSPACE/iplists-botsonly/cloudflare.ips # join lists with new line (will be filtered out later)
+ #         curl -sL https://www.cloudflare.com/ips-v6 | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists-botsonly/cloudflare.ips
+ #         cat $GITHUB_WORKSPACE/iplists-botsonly/cloudflare.ips | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists-botsonly/cloudflare.ips.tmp
+ #         mv $GITHUB_WORKSPACE/iplists-botsonly/cloudflare.ips.tmp $GITHUB_WORKSPACE/iplists-botsonly/cloudflare.ips
+
+      - name: Create merged/total IP-List (all.ips) # Use grep to merge files and ensure proper new-lines between every file, but remove any empty new-lines
+        run: grep -h -v '^[[:space:]]*$' $GITHUB_WORKSPACE/iplists-botsonly/*.ips | uniq -u | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/all_botsonly.ips
+
+      - name: Commit & push updated IP-Lists into this Repo
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Daily auto update of the IP-Lists" && git push
+      - name: Ensure jq is available
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      # 1) Build a single CSV with header: value,description
+      #    Each row: <IP-or-CIDR>,<list name derived from filename>
+      - name: Build consolidated CSV with list names
         shell: bash
+        env:
+          OUT_CSV: ${{ github.workspace }}/cloudflare_items.csv
         run: |
           set -euo pipefail
-          FILE="all_botsonly.ips"
-          test -s "$FILE"
+          echo "value,description" > "$OUT_CSV"
 
-          # Basic IPv4/CIDR validation (keeps lines that look like IPv4 or CIDR)
-          grep -E '^[0-9]{1,3}(\.[0-9]{1,3}){3}(/([0-9]|[12][0-9]|3[0-2]))?$' "$FILE" \
-            | awk '{$1=$1};1' \
-            | sort -u \
-            > /tmp/ips.txt
+          shopt -s nullglob
+          for f in "$GITHUB_WORKSPACE"/iplists-botsonly/*.ips; do
+            name="$(basename "$f" .ips)"   # ex: googlebot, bingbot
+            # one IP/CIDR per line → CSV rows: value,description
+            awk -v desc="$name" 'NF{print $0","desc}' "$f" >> "$OUT_CSV"
+          done
 
-          if ! test -s /tmp/ips.txt; then
-            echo "No valid IPv4 entries found."
-            exit 1
-          fi
+          echo "Built CSV at: $OUT_CSV"
+          head -n 5 "$OUT_CSV" || true
+          echo "Total rows: $(($(wc -l < "$OUT_CSV")-1))"
 
-          # Turn into [{"ip":"1.2.3.4"}, {"ip":"1.2.3.0/24"}]
-          jq -Rcn '[inputs | select(length>0) | {ip:.}]' < /tmp/ips.txt > /tmp/items.json
-          echo "Built payload:"
-          cat /tmp/items.json
-
-      - name: Replace ALL items in the Cloudflare list (bulk)
-        id: put_items
+      # 2) Convert CSV → JSON array for Cloudflare API
+      #    Produces: [{ "ip":"1.2.3.0/24", "comment":"googlebot" }, ...]
+      - name: Convert CSV to Cloudflare JSON payload
+        id: make_json
         shell: bash
+        env:
+          IN_CSV: ${{ github.workspace }}/cloudflare_items.csv
         run: |
           set -euo pipefail
+          # skip header; build JSON items
+          tail -n +2 "$IN_CSV" \
+          | awk -F, 'NF>=1{val=$1; desc=$2; for(i=3;i<=NF;i++) desc=desc","$i; gsub(/\r$/,"",desc); print val"\t"desc}' \
+          | jq -R -s '
+              split("\n") 
+              | map(select(length>0))
+              | map( split("\t") | {ip: .[0], comment: (.[1] // "")} )
+            ' > /tmp/items.json
+
+          echo "items_json=/tmp/items.json" >> "$GITHUB_OUTPUT"
+          echo "Preview:"
+          jq '.[0:5]' /tmp/items.json
+
+      # 3) Replace items in the Cloudflare list and wait for completion
+      - name: Update Cloudflare list (replace all items)
+        id: cf_put
+        shell: bash
+        env:
+          CF_API: https://api.cloudflare.com/client/v4
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_LIST_ID: ${{ secrets.CF_LIST_ID }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ITEMS_JSON: ${{ steps.make_json.outputs.items_json }}
+        run: |
+          set -euo pipefail
+
+          echo "Submitting bulk replace to Cloudflare…"
           RESP=$(curl -sS -X PUT \
             -H "Authorization: Bearer ${CF_TOKEN}" \
             -H "Content-Type: application/json" \
-            --data @/tmp/items.json \
+            --data @"${ITEMS_JSON}" \
             "${CF_API}/accounts/${CF_ACCOUNT_ID}/rules/lists/${CF_LIST_ID}/items")
 
-          echo "${RESP}" | jq .
-          OP_ID=$(echo "${RESP}" | jq -r '.result.operation_id')
-          if [ -z "${OP_ID}" ] || [ "${OP_ID}" = "null" ]; then
-            echo "Failed to get operation_id from response"
-            exit 1
+          echo "$RESP" | jq .
+          OP_ID=$(echo "$RESP" | jq -r '.result.operation_id // empty')
+          if [ -z "$OP_ID" ]; then
+            echo "No operation_id returned"; exit 1
           fi
           echo "operation_id=${OP_ID}" >> "$GITHUB_OUTPUT"
-        # PUT /accounts/{account_id}/rules/lists/{list_id}/items replaces all items; returns operation_id (async).  [oai_citation:1‡Cloudflare Docs](https://developers.cloudflare.com/api/resources/rules/subresources/lists/subresources/items/methods/update/?utm_source=chatgpt.com)
 
-      - name: Wait for bulk operation to complete
+      - name: Wait for Cloudflare bulk operation
         shell: bash
+        env:
+          CF_API: https://api.cloudflare.com/client/v4
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          OP_ID: ${{ steps.cf_put.outputs.operation_id }}
         run: |
           set -euo pipefail
-          OP_ID="${{ steps.put_items.outputs.operation_id }}"
-          STATUS="pending"
-          ATTEMPTS=0
-          MAX_ATTEMPTS=60  # ~10 minutes
-
-          while [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
-            RESP=$(curl -sS \
+          tries=0
+          until [ $tries -ge 60 ]; do
+            r=$(curl -sS \
               -H "Authorization: Bearer ${CF_TOKEN}" \
               "${CF_API}/accounts/${CF_ACCOUNT_ID}/rules/lists/bulk_operations/${OP_ID}")
-
-            STATUS=$(echo "$RESP" | jq -r '.result.status // .status // "unknown"')
-            echo "Bulk operation status: $STATUS"
-            if [ "$STATUS" = "completed" ]; then
-              echo "Bulk update completed."
-              exit 0
-            elif [ "$STATUS" = "failed" ]; then
-              echo "Bulk update FAILED:"
-              echo "$RESP" | jq .
-              exit 1
-            fi
-            ATTEMPTS=$((ATTEMPTS+1))
+            status=$(echo "$r" | jq -r '.result.status // .status // "unknown"')
+            echo "Bulk op status: $status"
+            case "$status" in
+              completed) exit 0 ;;
+              failed) echo "$r" | jq .; exit 1 ;;
+            esac
+            tries=$((tries+1))
             sleep 10
           done
-
-          echo "Timed out waiting for Cloudflare bulk operation ${OP_ID}"
-          exit 1
-        # Polls GET /accounts/{account_id}/rules/lists/bulk_operations/{operation_id}. Status: pending|running|completed|failed.  [oai_citation:2‡Cloudflare Docs](https://developers.cloudflare.com/api/resources/rules/subresources/lists/subresources/bulk_operations/methods/get/?utm_source=chatgpt.com)
+          echo "Timed out waiting for bulk operation ${OP_ID}"; exit 1
