@@ -18,7 +18,10 @@ jobs:
 
       - name: Generate GoogleBot IP-List
         run: curl -sL https://developers.google.com/static/search/apis/ipranges/googlebot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/googlebot.ips
- 
+
+      - name: Generate Google Special Crawler IP-List
+        run: curl -sL https://developers.google.com/search/apis/ipranges/special-crawlers.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/google-specials-crawler.ips
+
       - name: Generate BingBot IP-List
         run: curl -sL https://www.bing.com/toolbox/bingbot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/bingbot.ips
 

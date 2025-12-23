@@ -50,7 +50,11 @@ The lists are updated daily via a scheduled GitHub Action.
     │   
     ├── googlebot.ips
     │   IP-Addesses used by the Google Crawler
-    │   
+    │
+    ├── google-specials-crawler.ips
+    │   IP-Addesses used by the Google "special" crawler such as Google Adshttps://developers.google.com/crawling/docs/crawlers-fetchers/google-special-case-crawlers
+    │   See https://developers.google.com/crawling/docs/crawlers-fetchers/google-special-case-crawlers
+    │
     ├── imagekit.ips
     │   IP-Addesses used by the Imagekit.io Image Proxy
     │   
