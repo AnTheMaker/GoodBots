@@ -82,6 +82,9 @@ The lists are updated daily via a scheduled GitHub Action.
     ├── rssapi.ips
     │   IP-Addesses used by the RSSAPI.net Feed parser
     │   
+    ├── semrush.ips
+    │   Semrush Audit bot ip addresses ( @see https://www.semrush.com/kb/681-site-audit-troubleshooting#whitelist-bot )
+│   |
     ├── stripewebhook.ips
     │   IP-Addesses used by Stripe to send out Webhooks
     │   
