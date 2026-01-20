@@ -78,6 +78,9 @@ The lists are updated daily via a scheduled GitHub Action.
     ├── rssapi.ips
     │   IP-Addesses used by the RSSAPI.net Feed parser
     │   
+    ├── semrushbot.ips
+    │   IP-Addesses used by the Semrush Crawler
+    │   
     ├── stripewebhook.ips
     │   IP-Addesses used by Stripe to send out Webhooks
     │   
