@@ -60,6 +60,9 @@ jobs:
       - name: Get BetterUptime IP List # Source: https://docs.betteruptime.com/frequently-asked-questions
         run: curl -sL https://betteruptime.com/ips.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/betteruptimebot.ips
         
+      - name: Get Mollie IP List # Source: https://help.mollie.com/hc/en-us/articles/213470829-Which-IP-addresses-does-Mollie-use
+        run: curl -sL https://ip-ranges.mollie.com/ips.txt  | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/molliewebhook.ips
+        
       # temp disabled because of cloudflare challenge page
       #- name: Generate WebpagetestBot IP-List # Source: https://www.webpagetest.org/addresses.php
       #  run: curl -sL https://www.webpagetest.org/addresses.php?f=json | jq -r '.data[].addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/webpagetestbot.ips
