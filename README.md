@@ -82,6 +82,18 @@ The lists are updated daily via a scheduled GitHub Action.
     ├── pingdombot.ips
     │   IP-Addesses used by the Pingdom Bot
     │   
+    ├── openai-searchbot.ips
+    │   IP-Addesses used by the OpenAI web search feature
+    |
+    ├── openai-adsbot.ips
+    │   IP-Addesses used by the OpenAI ADS bot
+    │   
+    ├── openai-gptbot.ips
+    │   IP-Addesses used by the OpenAI GPT bot ( model training )
+    │   
+    ├── openai-gptuser.ips
+    │   IP-Addesses used by the OpenAI When user use AI
+    │   
     ├── rssapi.ips
     │   IP-Addesses used by the RSSAPI.net Feed parser
     │   
