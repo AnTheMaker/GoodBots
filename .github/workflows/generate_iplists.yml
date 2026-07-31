@@ -73,6 +73,12 @@ jobs:
           curl -sL https://openai.com/gptbot.json | jq -r '.data[].addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/openai-gptbot.ips
           curl -sL https://openai.com/chatgpt-user.json | jq -r '.data[].addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/openai-gptuser.ips
 
+      - name: Generate PerplexityBot IP-List # Source: https://www.perplexity.com/perplexitybot.json
+        run: curl -sL https://www.perplexity.com/perplexitybot.json | jq -r '.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/perplexitybot.ips
+
+      - name: Generate Perplexity‑User IP-List # Source: https://www.perplexity.com/perplexity-user.json
+        run: curl -sL https://www.perplexity.com/perplexity-user.json | jq -r '.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/perplexity-user.ips
+
       - name: Generate WebpagetestBot IP-List # Source: https://www.webpagetest.org/addresses.php
         run: curl -sL https://www.webpagetest.org/addresses.php?f=json | jq -r '.data[].addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/webpagetestbot.ips
 

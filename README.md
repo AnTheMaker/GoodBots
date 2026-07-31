@@ -84,7 +84,13 @@ The lists are updated daily via a scheduled GitHub Action.
     │   
     ├── openai-searchbot.ips
     │   IP-Addesses used by the OpenAI web search feature
-    |
+    │
+    ├── perplexitybot.ips
+    │   IP-Addesses used by the Perplexity bot
+    │
+    ├── perplexity-user.ips
+    │   IP-Addesses used by the Perplexity User bot
+    │
     ├── openai-adsbot.ips
     │   IP-Addesses used by the OpenAI ADS bot
     │   
@@ -99,7 +105,7 @@ The lists are updated daily via a scheduled GitHub Action.
     │   
     ├── semrush.ips
     │   Semrush Audit bot ip addresses ( @see https://www.semrush.com/kb/681-site-audit-troubleshooting#whitelist-bot )
-│   |
+    |
     ├── stripewebhook.ips
     │   IP-Addesses used by Stripe to send out Webhooks
     │   
