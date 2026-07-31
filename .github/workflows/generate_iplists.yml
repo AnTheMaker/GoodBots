@@ -66,6 +66,13 @@ jobs:
       - name: Get BetterUptime IP List # Source: https://docs.betteruptime.com/frequently-asked-questions
         run: curl -sL https://betteruptime.com/ips.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/betteruptimebot.ips
 
+      - name: Generate OpenAI # Source: https://developers.openai.com/api/docs/bots
+        run: |
+          curl -sL https://openai.com/searchbot.json | jq -r '.data[].addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/openai-searchbot.ips
+          curl -sL https://openai.com/adsbot.json | jq -r '.data[].addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/openai-adsbot.ips
+          curl -sL https://openai.com/gptbot.json | jq -r '.data[].addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/openai-gptbot.ips
+          curl -sL https://openai.com/chatgpt-user.json | jq -r '.data[].addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/openai-gptuser.ips
+
       - name: Generate WebpagetestBot IP-List # Source: https://www.webpagetest.org/addresses.php
         run: curl -sL https://www.webpagetest.org/addresses.php?f=json | jq -r '.data[].addresses[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/webpagetestbot.ips
 
