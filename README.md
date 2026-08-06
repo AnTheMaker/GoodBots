@@ -28,7 +28,10 @@ The lists are updated daily via a scheduled GitHub Action.
     │   IP-Addesses used by the Bing Crawler
     │   
     ├── bunnycdn.ips
-    │   IP-Addesses used by the bunny.net CDN
+    │   IP-Addesses used by the bunny.net CDN 
+    │   
+    ├── claudebot.ips
+    │   IP-Addesses used by the ClaudeBot Crawler
     │   
     ├── cloudflare.ips
     │   IP-Addesses used by the Cloudflare CDN
