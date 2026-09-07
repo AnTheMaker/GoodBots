@@ -3,7 +3,7 @@ name: Generate IP Lists
 on:
   schedule:
     # Runs once a day at midnight
-    - cron: '0 0 * * *'
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 jobs:
@@ -19,6 +19,9 @@ jobs:
       - name: Generate GoogleBot IP-List
         run: curl -sL https://developers.google.com/static/crawling/ipranges/common-crawlers.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/googlebot.ips
  
+      - name: Generate ClaudeBot IP-List
+        run: curl -sL https://claude.com/crawling/bots.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/claudebot.ips
+
       - name: Generate BingBot IP-List
         run: curl -sL https://www.bing.com/toolbox/bingbot.json | jq -r '.prefixes[].ipv6Prefix,.prefixes[].ipv4Prefix | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/bingbot.ips
 
@@ -33,13 +36,13 @@ jobs:
 
       - name: Generate AhrefsBot IP-List # Source: https://help.ahrefs.com/en/articles/78658-what-is-the-list-of-your-ip-ranges
         run: curl -sL https://api.ahrefs.com/v3/public/crawler-ips | jq -r '.ips[].ip_address | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/ahrefsbot.ips
-        
+
       - name: Generate FacebookBot IP-List # Source: https://developers.facebook.com/docs/sharing/webmasters/crawler/
         run: whois -h whois.radb.net -- '-i origin AS32934' | grep ^route | awk '{gsub("(route:|route6:)","");print}' | awk '{gsub(/ /,""); print}' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/facebookbot.ips
-     
+
       - name: Generate DuckDuckBot IP-List # Source: https://help.duckduckgo.com/duckduckgo-help-pages/results/duckduckbot/
         run: curl -sL https://raw.githubusercontent.com/duckduckgo/duckduckgo-help-pages/master/_docs/results/duckduckbot.md | grep "^\- " | awk '{gsub("-",""); print}' | awk '{gsub(/ /,""); print}' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/duckduckbot.ips
-      
+
       - name: Get Telegram IP List
         run: curl -sL https://core.telegram.org/resources/cidr.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/telegrambot.ips
 
@@ -50,10 +53,10 @@ jobs:
         run: |
           curl -sL https://my.pingdom.com/probes/ipv4 | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/pingdombot.ips
           curl -sL https://my.pingdom.com/probes/ipv6 | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists/pingdombot.ips
-      
+
       - name: Get Stripe Webhook IP List # Source: https://stripe.com/docs/ips
         run: curl -sL https://stripe.com/files/ips/ips_webhooks.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/stripewebhook.ips
-        
+
       - name: Get RSS API IP List # Source: https://rssapi.net/faq
         run: curl -sL https://rssapi.net/ips.txt | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/rssapi.ips
 
@@ -71,7 +74,7 @@ jobs:
         run: |
           curl -sL https://api.bunny.net/system/edgeserverlist/plain | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/bunnycdn.ips
           curl -sL https://api.bunny.net/system/edgeserverlist/ipv6 | jq -r '.[] | select( . != null )' | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh >> $GITHUB_WORKSPACE/iplists/bunnycdn.ips
-          
+
       - name: Get Cloudflare IP List # Source: https://www.cloudflare.com/ips/
         run: |
           curl -sL https://www.cloudflare.com/ips-v4 | $GITHUB_WORKSPACE/.github/scripts/clean_ips.sh > $GITHUB_WORKSPACE/iplists/cloudflare.ips
